@@ -6,13 +6,12 @@ import pandas as pd
 import streamlit as st
 
 # ==========================================
-# 1. إعدادات الصفحة والتصميم الملكي (Opal's Sakura Theme)
+# 1. إعدادات الصفحة والتصميم (Opal's Sakura Theme)
 # ==========================================
 st.set_page_config(
     page_title="BELLONA | بنك الروبي", page_icon="🌸", layout="centered"
 )
 
-# تصميم الـ CSS وتأثير تساقط أوراق الكرز
 st.markdown(
     """
     <style>
@@ -29,7 +28,6 @@ st.markdown(
         text-align: right;
     }
 
-    /* تأثير زهور الكرز (Sakura Animation) */
     @keyframes sakura-fall {
         0% { transform: translateY(-10vh) rotate(0deg); opacity: 0.9; }
         100% { transform: translateY(105vh) rotate(360deg); opacity: 0; }
@@ -57,7 +55,6 @@ st.markdown(
     .p4 { left: 68%; width: 12px; height: 15px; animation-duration: 8.5s; animation-delay: 3s; background: #FFB6C1; }
     .p5 { left: 85%; width: 15px; height: 18px; animation-duration: 10s; animation-delay: 0.5s; }
 
-    /* بطاقة الروبي المصرفية - تصميم Opal's */
     .ruby-card {
         background: rgba(255, 255, 255, 0.95);
         border: 3px solid #FF80AB;
@@ -76,7 +73,6 @@ st.markdown(
         margin: 10px 0;
     }
 
-    /* الشارات والرتب */
     .badge-aurther {
         background: linear-gradient(135deg, #EC407A 0%, #D81B60 100%);
         color: #FFFFFF;
@@ -107,7 +103,6 @@ st.markdown(
         border: 1px solid #FFC1E3;
     }
 
-    /* الأزرار وحقول الإدخال */
     .stButton>button {
         background: linear-gradient(90deg, #EC407A 0%, #D81B60 100%) !important;
         color: #FFFFFF !important;
@@ -132,7 +127,6 @@ st.markdown(
         border-radius: 14px !important;
     }
 
-    /* تصميم التبويبات */
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px !important;
         background: #FFE4E1 !important;
@@ -221,7 +215,6 @@ def init_db():
         )
     """)
 
-  # إضافة حسابات المشرفين الافتراضية (Aurther & Lamino) برصيد 0 روبي
   admins_to_seed = [
       ("aurther", "iraq2026", "Aurther 👑", 0.0, "admin"),
       ("lamino", "iraq2026", "Lamino 🤝", 0.0, "admin"),
@@ -330,7 +323,6 @@ if not st.session_state["logged_in"]:
 refresh_session()
 user = st.session_state["user_data"]
 
-# الهيدر وزر الخروج
 col_h1, col_h2 = st.columns([3, 1])
 with col_h1:
   st.markdown(
@@ -343,7 +335,6 @@ with col_h2:
     st.session_state["user_data"] = None
     st.rerun()
 
-# الشارات
 if user["username"] == "aurther":
   role_badge = '<span class="badge-aurther">👑 المشرف العام (Aurther)</span>'
 elif user["username"] == "lamino":
@@ -367,7 +358,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# قائمة التبويبات
 tabs_list = [
     "💸 التحويل والاستلام",
     "🎲 سحب الحظ اليومي",
@@ -568,18 +558,19 @@ if user["role"] == "admin":
         horizontal=True,
     )
 
-    # 1. إضافة عضو جديد
     if "إضافة" in admin_action:
       with st.form("add_user_form"):
         st.write("📝 **إنشاء حساب جديد وتعيين اسم المستخدم وكلمة السر**")
-        new_user = st.text_input("اسم المستخدم (Username بالعربي أو الإنجليزي):")
+        new_user = st.text_input("اسم المستخدم (Username):")
         new_pwd = st.text_input("كلمة السر الأولى:", type="password")
         new_dname = st.text_input("الاسم الظاهر للعضو:")
         new_bal = st.number_input(
             "الرصيد الافتتاحي (روبي):", min_value=0.0, value=0.0
         )
         new_role = st.selectbox(
-            "نوع الحساب:", ["user", "admin"], format_func=lambda x: "عضو" if x == "user" else "مشرف"
+            "نوع الحساب:",
+            ["user", "admin"],
+            format_func=lambda x: "عضو" if x == "user" else "مشرف",
         )
 
         if st.form_submit_button("✨ إنشاء الحساب وإعطاؤه للعضو"):
@@ -608,7 +599,6 @@ if user["role"] == "admin":
             finally:
               conn.close()
 
-    # 2. تعديل رصيد
     elif "تعديل" in admin_action:
       conn = get_db()
       df_u = pd.read_sql_query(
@@ -651,7 +641,6 @@ if user["role"] == "admin":
           st.success("تم تعديل الرصيد بنجاح!")
           st.rerun()
 
-    # 3. حذف حساب
     elif "حذف" in admin_action:
       conn = get_db()
       df_del = pd.read_sql_query(
@@ -661,4 +650,12 @@ if user["role"] == "admin":
       )
       conn.close()
 
-      if not df_del.e
+      if not df_del.empty:
+        del_target = st.selectbox("اختر الحساب للحذف:", df_del["username"])
+        if st.button(f"🔥 حذف حساب @{del_target} نهائياً"):
+          conn = get_db()
+          c = conn.cursor()
+          c.execute("DELETE FROM users WHERE username = ?", (del_target,))
+          c.execute(
+              "DELETE FROM transactions WHERE sender = ? OR receiver = ?",
+              (del_target, del_t
