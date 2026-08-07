@@ -224,10 +224,8 @@ def init_db():
     c.execute("SELECT username FROM users WHERE username = ?", (un,))
     if not c.fetchone():
       c.execute(
-          """
-                INSERT INTO users (username, password_hash, display_name, balance, role)
-                VALUES (?, ?, ?, ?, ?)
-            """,
+          "INSERT INTO users (username, password_hash, display_name, balance,"
+          " role) VALUES (?, ?, ?, ?, ?)",
           (un, hash_password(pw), dname, bal, role),
       )
 
@@ -411,10 +409,8 @@ with tabs[0]:
 
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         c.execute(
-            """
-            INSERT INTO transactions (sender, receiver, amount, note, timestamp)
-            VALUES (?, ?, ?, ?, ?)
-        """,
+            "INSERT INTO transactions (sender, receiver, amount, note,"
+            " timestamp) VALUES (?, ?, ?, ?, ?)",
             (
                 user["username"],
                 receiver_username,
@@ -450,20 +446,15 @@ with tabs[1]:
       conn = get_db()
       c = conn.cursor()
       c.execute(
-          """
-            UPDATE users 
-            SET balance = balance + ?, last_daily_claim = ? 
-            WHERE username = ?
-        """,
+          "UPDATE users SET balance = balance + ?, last_daily_claim = ? WHERE"
+          " username = ?",
           (won_amount, today_str, user["username"]),
       )
 
       now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
       c.execute(
-          """
-            INSERT INTO transactions (sender, receiver, amount, note, timestamp)
-            VALUES (?, ?, ?, ?, ?)
-        """,
+          "INSERT INTO transactions (sender, receiver, amount, note,"
+          " timestamp) VALUES (?, ?, ?, ?, ?)",
           (
               "نظام الحظ 🎲",
               user["username"],
@@ -489,12 +480,9 @@ with tabs[2]:
 
   conn = get_db()
   df_tx = pd.read_sql_query(
-      """
-        SELECT sender AS 'المرسل', receiver AS 'المستلم', amount AS 'المبلغ (روبي)', note AS 'الملاحظة', timestamp AS 'التاريخ والوقت'
-        FROM transactions 
-        WHERE sender = ? OR receiver = ?
-        ORDER BY id DESC
-    """,
+      "SELECT sender AS 'المرسل', receiver AS 'المستلم', amount AS 'المبلغ"
+      " (روبي)', note AS 'الملاحظة', timestamp AS 'التاريخ والوقت' FROM"
+      " transactions WHERE sender = ? OR receiver = ? ORDER BY id DESC",
       conn,
       params=(user["username"], user["username"]),
   )
@@ -580,10 +568,8 @@ if user["role"] == "admin":
             c = conn.cursor()
             try:
               c.execute(
-                  """
-                                INSERT INTO users (username, password_hash, display_name, balance, role)
-                                VALUES (?, ?, ?, ?, ?)
-                            """,
+                  "INSERT INTO users (username, password_hash, display_name,"
+                  " balance, role) VALUES (?, ?, ?, ?, ?)",
                   (
                       clean_un,
                       hash_password(new_pwd),
@@ -623,10 +609,8 @@ if user["role"] == "admin":
 
           now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
           c.execute(
-              """
-                        INSERT INTO transactions (sender, receiver, amount, note, timestamp)
-                        VALUES (?, ?, ?, ?, ?)
-                    """,
+              "INSERT INTO transactions (sender, receiver, amount, note,"
+              " timestamp) VALUES (?, ?, ?, ?, ?)",
               (
                   f"المشرف (@{user['username']})",
                   target_user,
@@ -658,4 +642,15 @@ if user["role"] == "admin":
           c.execute("DELETE FROM users WHERE username = ?", (del_target,))
           c.execute(
               "DELETE FROM transactions WHERE sender = ? OR receiver = ?",
-              (del_target, del_target)
+              (del_target, del_target),
+          )
+          conn.commit()
+          conn.close()
+          st.success(f"تم حذف الحساب @{del_target} بنجاح!")
+          st.rerun()
+      else:
+        st.info("لا توجد حسابات أعضاء قابلة للحذف حالياً.")
+
+    elif "عرض" in admin_action:
+      conn = get_db()
+      df_all =
