@@ -4,150 +4,185 @@ import random
 import sqlite3
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 # ==========================================
-# 1. إعدادات الصفحة والتصميم الملكي (Ruby Theme)
+# 1. إعدادات الصفحة والتصميم الملكي (Opal's Sakura Theme)
 # ==========================================
 st.set_page_config(
-    page_title="RUBY BANK | بنك الروبي الملكي",
-    page_icon="💎",
-    layout="centered",
+    page_title="BELLONA | بنك الروبي", page_icon="🌸", layout="centered"
 )
 
-# تصميم الـ CSS الخاص بالثيم الياقوتي والزجاجي
+# تصميم الـ CSS وتأثير تساقط أوراق الكرز
 st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
     
-    * {
+    html, body, [class*="css"] {
         font-family: 'Cairo', sans-serif !important;
     }
 
     .stApp {
-        background: linear-gradient(135deg, #0F0507 0%, #1A0A0F 40%, #2D0512 80%, #120207 100%) !important;
-        color: #FFFFFF !important;
+        background: linear-gradient(180deg, #FFFFFF 0%, #FFF0F5 50%, #FFE4E1 100%) !important;
+        color: #4A0E17 !important;
         direction: rtl;
         text-align: right;
     }
 
-    /* بطاقة الروبي الملكية */
-    .ruby-card {
-        background: linear-gradient(135deg, rgba(155, 17, 30, 0.9) 0%, rgba(210, 4, 45, 0.75) 50%, rgba(80, 0, 20, 0.95) 100%);
-        border: 2px solid #FF2A5F;
-        border-radius: 24px;
-        padding: 25px;
-        box-shadow: 0 15px 35px rgba(210, 4, 45, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(12px);
-        margin-bottom: 25px;
-        position: relative;
+    /* تأثير زهور الكرز (Sakura Animation) */
+    @keyframes sakura-fall {
+        0% { transform: translateY(-10vh) rotate(0deg); opacity: 0.9; }
+        100% { transform: translateY(105vh) rotate(360deg); opacity: 0; }
+    }
+    
+    .sakura-container {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none;
+        z-index: 0;
         overflow: hidden;
     }
     
-    .ruby-card::before {
-        content: "💎 RUBY BANK VAULT";
+    .petal {
         position: absolute;
-        top: 15px;
-        left: 20px;
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 2px;
-        color: rgba(255, 255, 255, 0.4);
+        background: #FFB7C5;
+        border-radius: 15px 0px 15px 0px;
+        opacity: 0.7;
+        animation: sakura-fall 8s linear infinite;
+    }
+    
+    .p1 { left: 8%; width: 14px; height: 18px; animation-duration: 7s; animation-delay: 0s; }
+    .p2 { left: 22%; width: 10px; height: 14px; animation-duration: 9s; animation-delay: 2s; background: #FFC0CB; }
+    .p3 { left: 45%; width: 16px; height: 20px; animation-duration: 6.5s; animation-delay: 1s; }
+    .p4 { left: 68%; width: 12px; height: 15px; animation-duration: 8.5s; animation-delay: 3s; background: #FFB6C1; }
+    .p5 { left: 85%; width: 15px; height: 18px; animation-duration: 10s; animation-delay: 0.5s; }
+
+    /* بطاقة الروبي المصرفية - تصميم Opal's */
+    .ruby-card {
+        background: rgba(255, 255, 255, 0.95);
+        border: 3px solid #FF80AB;
+        border-radius: 24px;
+        padding: 25px;
+        box-shadow: 0 12px 35px rgba(216, 27, 96, 0.15);
+        margin-bottom: 25px;
+        position: relative;
     }
 
     .card-balance {
         font-size: 3rem;
         font-weight: 900;
+        color: #D81B60;
+        text-shadow: 0px 3px 12px rgba(216, 27, 96, 0.2);
+        margin: 10px 0;
+    }
+
+    /* الشارات والرتب */
+    .badge-aurther {
+        background: linear-gradient(135deg, #EC407A 0%, #D81B60 100%);
         color: #FFFFFF;
-        text-shadow: 0 0 25px #FF2A5F, 0 0 10px #FFB7C5;
-        margin: 12px 0;
+        padding: 4px 14px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 900;
+        box-shadow: 0 4px 10px rgba(216, 27, 96, 0.3);
     }
 
-    .card-user {
-        font-size: 1.25rem;
+    .badge-lamino {
+        background: #FF80AB;
+        color: #FFFFFF;
+        padding: 4px 14px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 900;
+        box-shadow: 0 4px 10px rgba(255, 128, 171, 0.3);
+    }
+
+    .badge-user {
+        background: #FFE4E1;
+        color: #C2185B;
+        padding: 4px 14px;
+        border-radius: 12px;
+        font-size: 12px;
         font-weight: 800;
-        color: #FFC1E3;
+        border: 1px solid #FFC1E3;
     }
 
-    /* أزرار مخصصة */
+    /* الأزرار وحقول الإدخال */
     .stButton>button {
-        background: linear-gradient(90deg, #D2042D 0%, #E0115F 100%) !important;
+        background: linear-gradient(90deg, #EC407A 0%, #D81B60 100%) !important;
         color: #FFFFFF !important;
         font-weight: 800 !important;
-        border-radius: 14px !important;
-        border: 1px solid #FF758F !important;
+        border-radius: 16px !important;
+        border: none !important;
         padding: 12px 24px !important;
-        box-shadow: 0 6px 20px rgba(210, 4, 45, 0.4) !important;
-        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 18px rgba(216, 27, 96, 0.35) !important;
         width: 100%;
+        transition: all 0.25s ease-in-out !important;
     }
 
     .stButton>button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(224, 17, 95, 0.6) !important;
+        box-shadow: 0 6px 22px rgba(216, 27, 96, 0.5) !important;
     }
 
-    /* حقول الإدخال */
     .stTextInput input, .stNumberInput input, .stSelectbox div {
-        background-color: rgba(255, 255, 255, 0.08) !important;
-        color: #FFFFFF !important;
-        border: 1px solid #7A1C30 !important;
-        border-radius: 12px !important;
-    }
-
-    .stTextInput input:focus, .stNumberInput input:focus {
-        border-color: #FF2A5F !important;
-        box-shadow: 0 0 12px rgba(255, 42, 95, 0.5) !important;
-    }
-
-    .badge-admin {
-        background: #FFD700;
-        color: #000;
-        padding: 4px 12px;
-        border-radius: 8px;
-        font-size: 12px;
-        font-weight: 900;
-    }
-
-    .badge-user {
-        background: #E0115F;
-        color: #FFF;
-        padding: 4px 12px;
-        border-radius: 8px;
-        font-size: 12px;
-        font-weight: 900;
+        background-color: #FFFFFF !important;
+        color: #37474F !important;
+        border: 2px solid #FFC1E3 !important;
+        border-radius: 14px !important;
     }
 
     /* تصميم التبويبات */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background: rgba(255, 255, 255, 0.05);
-        padding: 10px;
-        border-radius: 18px;
-        border: 1px solid #500014;
-        justify-content: center;
+        gap: 10px !important;
+        background: #FFE4E1 !important;
+        padding: 10px 14px !important;
+        border-radius: 22px !important;
+        border: 2px solid #FF80AB !important;
+        box-shadow: 0 8px 25px rgba(216, 27, 96, 0.15) !important;
+        justify-content: center !important;
     }
 
     .stTabs [data-baseweb="tab"] {
-        border-radius: 12px;
-        color: #FFB7C5 !important;
-        font-weight: 700;
-        padding: 8px 18px !important;
+        border-radius: 14px !important;
+        background-color: #FFFFFF !important;
+        color: #C2185B !important;
+        font-weight: 800 !important;
+        border: 2px solid #FFC1E3 !important;
+        padding: 8px 20px !important;
+        transition: all 0.25s ease-in-out !important;
     }
 
     .stTabs [aria-selected="true"] {
-        background: #D2042D !important;
+        background: linear-gradient(135deg, #EC407A 0%, #D81B60 100%) !important;
         color: #FFFFFF !important;
-        box-shadow: 0 4px 15px rgba(210, 4, 45, 0.5) !important;
+        border: 2px solid #D81B60 !important;
+        box-shadow: 0 6px 18px rgba(216, 27, 96, 0.4) !important;
+    }
+
+    div[data-baseweb="tab-panel"] {
+        background: rgba(255, 255, 255, 0.95) !important;
+        border: 2px solid #FFC1E3 !important;
+        border-radius: 24px !important;
+        padding: 25px !important;
+        margin-top: 15px !important;
+        box-shadow: 0 10px 30px rgba(216, 27, 96, 0.1) !important;
     }
     </style>
+
+    <div class="sakura-container">
+        <div class="petal p1"></div>
+        <div class="petal p2"></div>
+        <div class="petal p3"></div>
+        <div class="petal p4"></div>
+        <div class="petal p5"></div>
+    </div>
 """,
     unsafe_allow_html=True,
 )
 
 # ==========================================
-# 2. إدارة قاعدة البيانات (SQLite)
+# 2. إدارة قاعدة البيانات
 # ==========================================
 DB_FILE = "ruby_bank.db"
 
@@ -164,7 +199,6 @@ def init_db():
   conn = get_db()
   c = conn.cursor()
 
-  # جدول المستخدمين
   c.execute("""
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
@@ -176,7 +210,6 @@ def init_db():
         )
     """)
 
-  # جدول المعاملات
   c.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -188,22 +221,22 @@ def init_db():
         )
     """)
 
-  # إنشاء حساب المشرف الافتراضي عند التشغيل الأول
-  c.execute("SELECT * FROM users WHERE username = 'admin'")
-  if not c.fetchone():
-    c.execute(
-        """
-            INSERT INTO users (username, password_hash, display_name, balance, role)
-            VALUES (?, ?, ?, ?, ?)
-        """,
-        (
-            "admin",
-            hash_password("ruby2026"),
-            "المشرف العام 👑",
-            10000.0,
-            "admin",
-        ),
-    )
+  # إضافة حسابات المشرفين الافتراضية (Aurther & Lamino) برصيد 0 روبي
+  admins_to_seed = [
+      ("aurther", "iraq2026", "Aurther 👑", 0.0, "admin"),
+      ("lamino", "iraq2026", "Lamino 🤝", 0.0, "admin"),
+  ]
+
+  for un, pw, dname, bal, role in admins_to_seed:
+    c.execute("SELECT username FROM users WHERE username = ?", (un,))
+    if not c.fetchone():
+      c.execute(
+          """
+                INSERT INTO users (username, password_hash, display_name, balance, role)
+                VALUES (?, ?, ?, ?, ?)
+            """,
+          (un, hash_password(pw), dname, bal, role),
+      )
 
   conn.commit()
   conn.close()
@@ -212,7 +245,7 @@ def init_db():
 init_db()
 
 # ==========================================
-# 3. إدارة الجلسة والوظائف الأساسية
+# 3. إدارة الجلسة
 # ==========================================
 if "logged_in" not in st.session_state:
   st.session_state["logged_in"] = False
@@ -252,21 +285,21 @@ def refresh_session():
 # ==========================================
 if not st.session_state["logged_in"]:
   st.markdown(
-      "<h1 style='text-align: center; color: #FF2A5F; font-weight: 900;'>"
-      "💎 RUBY BANK 💎</h1>",
+      "<h1 style='text-align: center; color: #D81B60; font-weight: 900;'>🌸"
+      " BELLONA BANK 🌸</h1>",
       unsafe_allow_html=True,
   )
   st.markdown(
-      "<p style='text-align: center; color: #FFB7C5;'>مرحباً بك في النظام"
-      " المصرفي لعملة الروبي الملكية</p>",
+      "<p style='text-align: center; color: #C2185B; font-weight: 700;'>✨ نظام"
+      " ونقاط عملة الروبي المصرفية ✨</p>",
       unsafe_allow_html=True,
   )
 
   with st.form("login_form"):
-    st.subheader("🔑 دخول الخزنة المصرفية")
+    st.subheader("🔑 تسجيل الدخول إلى الحساب")
     username_in = st.text_input("اسم المستخدم (Username):")
     password_in = st.text_input("كلمة السر:", type="password")
-    submit_login = st.form_submit_button("🚀 تسجيل الدخول")
+    submit_login = st.form_submit_button("🚀 دخول الخزنة")
 
     if submit_login:
       clean_un = username_in.strip().lower()
@@ -286,12 +319,13 @@ if not st.session_state["logged_in"]:
       else:
         st.error("❌ اسم المستخدم أو كلمة السر غير صحيحة.")
 
-  st.info("💡 الحسابات تُنشأ حصراً عبر المشرفين. تواصل مع الإدارة لاستلام حسابك.")
-  st.caption("حساب الأدمن الافتراضي: admin | كلمة السر: ruby2026")
+  st.warning(
+      "🔒 الحسابات يتم إنشاؤها حصراً عن طريق المشرفين (Aurther / Lamino)."
+  )
   st.stop()
 
 # ==========================================
-# 5. الواجهة الرئيسية للبنك
+# 5. الواجهة الرئيسية
 # ==========================================
 refresh_session()
 user = st.session_state["user_data"]
@@ -299,19 +333,26 @@ user = st.session_state["user_data"]
 # الهيدر وزر الخروج
 col_h1, col_h2 = st.columns([3, 1])
 with col_h1:
-  st.title("💎 بنك الروبي")
+  st.markdown(
+      "<h2 style='color: #D81B60; font-weight: 900;'>💎 بنك الروبي الملكي</h2>",
+      unsafe_allow_html=True,
+  )
 with col_h2:
   if st.button("🚪 خروج"):
     st.session_state["logged_in"] = False
     st.session_state["user_data"] = None
     st.rerun()
 
-# عرض بطاقة الروبي البنكية
-role_badge = (
-    '<span class="badge-admin">👑 مشرف</span>'
-    if user["role"] == "admin"
-    else '<span class="badge-user">💎 عضو</span>'
-)
+# الشارات
+if user["username"] == "aurther":
+  role_badge = '<span class="badge-aurther">👑 المشرف العام (Aurther)</span>'
+elif user["username"] == "lamino":
+  role_badge = '<span class="badge-lamino">🤝 المساعد العام (Lamino)</span>'
+elif user["role"] == "admin":
+  role_badge = '<span class="badge-aurther">🛡️ مشرف</span>'
+else:
+  role_badge = '<span class="badge-user">💎 عضو</span>'
+
 st.markdown(
     f"""
     <div class="ruby-card">
@@ -320,26 +361,27 @@ st.markdown(
             {role_badge}
         </div>
         <div class="card-balance">{user['balance']:,.2f} <span style="font-size: 1.5rem;">روبي 💎</span></div>
-        <div style="font-size: 11px; color: rgba(255,255,255,0.5);">معرف الحساب: RB-{hashlib.md5(user['username'].encode()).hexdigest()[:8].upper()}</div>
+        <div style="font-size: 11px; color: #880E4F; font-weight: 600;">معرف الحساب: RB-{hashlib.md5(user['username'].encode()).hexdigest()[:8].upper()}</div>
     </div>
 """,
     unsafe_allow_html=True,
 )
 
-# التبويبات المتاحة
+# قائمة التبويبات
 tabs_list = [
-    "💸 تحويل روبي",
+    "💸 التحويل والاستلام",
     "🎲 سحب الحظ اليومي",
     "📜 سجل المعاملات",
+    "🔒 إعدادات الحساب",
 ]
 if user["role"] == "admin":
-  tabs_list.append("⚙️ لوحة الإدارة")
+  tabs_list.append("🛡️ لوحة المشرفين")
 
 tabs = st.tabs(tabs_list)
 
-# --- التبويب 1: تحويل الروبي ---
+# --- التبويب 1: التحويل والاستلام ---
 with tabs[0]:
-  st.subheader("💸 تحويل الروبي إلى عضو آخر")
+  st.subheader("💸 إجراء تحويل جديد")
 
   conn = get_db()
   c = conn.cursor()
@@ -356,20 +398,18 @@ with tabs[0]:
     receiver_username = options[selected_label]
 
     transfer_amount = st.number_input(
-        "المبلغ المراد تحويله (روبي):", min_value=0.5, step=1.0, value=10.0
+        "المبلغ المراد تحويله (روبي):", min_value=0.5, step=1.0, value=5.0
     )
     transfer_note = st.text_input(
-        "ملاحظة / سبب التحويل:", value="تحويل أخوي 💎"
+        "ملاحظة / سبب التحويل:", value="تحويل روبي 💎"
     )
 
     if st.button("🚀 إرسال الروبي الآن"):
       if user["balance"] < transfer_amount:
-        st.error("❌ رصيدك الحالي لا يكفي لإتمام هذه العملية!")
+        st.error("❌ رصيدك الحالي لا يكفي لإتمام التحويل!")
       else:
         conn = get_db()
         c = conn.cursor()
-
-        # خصم وإضافة
         c.execute(
             "UPDATE users SET balance = balance - ? WHERE username = ?",
             (transfer_amount, user["username"]),
@@ -379,7 +419,6 @@ with tabs[0]:
             (transfer_amount, receiver_username),
         )
 
-        # تسجيل السجل
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         c.execute(
             """
@@ -399,7 +438,7 @@ with tabs[0]:
         conn.close()
 
         st.balloons()
-        st.success(f"✅ تم تحويل {transfer_amount:g} روبي بنجاح!")
+        st.success(f"✅ تم تحويل {transfer_amount:g} روبي إلى {selected_label}!")
         refresh_session()
         st.rerun()
   else:
@@ -456,12 +495,12 @@ with tabs[1]:
 
 # --- التبويب 3: سجل المعاملات ---
 with tabs[2]:
-  st.subheader("📜 سجل عمليات حسابك")
+  st.subheader("📜 سجل التحويلات والاستلام الخاص بك")
 
   conn = get_db()
   df_tx = pd.read_sql_query(
       """
-        SELECT sender AS 'المرسل', receiver AS 'المستلم', amount AS 'المبلغ', note AS 'الملاحظة', timestamp AS 'التاريخ'
+        SELECT sender AS 'المرسل', receiver AS 'المستلم', amount AS 'المبلغ (روبي)', note AS 'الملاحظة', timestamp AS 'التاريخ والوقت'
         FROM transactions 
         WHERE sender = ? OR receiver = ?
         ORDER BY id DESC
@@ -474,20 +513,57 @@ with tabs[2]:
   if not df_tx.empty:
     st.dataframe(df_tx, use_container_width=True)
   else:
-    st.info("لا توجد معاملات مسجلة بحسابك بعد.")
+    st.info("لا توجد عمليات تحويل أو استلام مسجلة بحسابك.")
 
-# --- التبويب 4: لوحة الإدارة (للمشرفين) ---
+# --- التبويب 4: إعدادات الحساب ---
+with tabs[3]:
+  st.subheader("🔒 إعدادات الحساب والأمان")
+
+  with st.form("change_pwd_form"):
+    st.write("🔑 **تغيير كلمة السر الخاصة بك**")
+    curr_pwd = st.text_input("كلمة السر الحالية:", type="password")
+    new_pwd = st.text_input("كلمة السر الجديدة:", type="password")
+    confirm_pwd = st.text_input("تأكيد كلمة السر الجديدة:", type="password")
+
+    if st.form_submit_button("✏️ تحديث كلمة السر"):
+      conn = get_db()
+      c = conn.cursor()
+      c.execute(
+          "SELECT password_hash FROM users WHERE username = ?",
+          (user["username"],),
+      )
+      real_hash = c.fetchone()[0]
+      conn.close()
+
+      if hash_password(curr_pwd) != real_hash:
+        st.error("❌ كلمة السر الحالية غير صحيحة!")
+      elif new_pwd.strip() == "":
+        st.error("❌ لا يمكن ترك كلمة السر الجديدة فارغة!")
+      elif new_pwd != confirm_pwd:
+        st.error("❌ كلمة السر الجديدة وتأكيدها غير متطابقين!")
+      else:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute(
+            "UPDATE users SET password_hash = ? WHERE username = ?",
+            (hash_password(new_pwd), user["username"]),
+        )
+        conn.commit()
+        conn.close()
+        st.success("✅ تم تغيير كلمة السر بنجاح!")
+
+# --- التبويب 5: لوحة المشرفين ---
 if user["role"] == "admin":
-  with tabs[3]:
-    st.subheader("⚙️ لوحة الإشراف والتحكم")
+  with tabs[4]:
+    st.subheader("🛡️ لوحة إدارة الحسابات (المشرفين)")
 
     admin_action = st.radio(
         "اختر الإجراء المطلوب:",
         [
-            "➕ إضافة عضو جديد",
+            "➕ إضافة عضو جديد ويوزره",
             "💰 تعديل رصيد عضو",
+            "❌ حذف حساب",
             "👥 عرض قائمة الأعضاء",
-            "📊 سجل كل المعاملات",
         ],
         horizontal=True,
     )
@@ -495,16 +571,18 @@ if user["role"] == "admin":
     # 1. إضافة عضو جديد
     if "إضافة" in admin_action:
       with st.form("add_user_form"):
-        st.write("📝 **إنشاء حساب بنكي جديد**")
-        new_user = st.text_input("اسم المستخدم (Username):")
+        st.write("📝 **إنشاء حساب جديد وتعيين اسم المستخدم وكلمة السر**")
+        new_user = st.text_input("اسم المستخدم (Username بالعربي أو الإنجليزي):")
         new_pwd = st.text_input("كلمة السر الأولى:", type="password")
-        new_dname = st.text_input("الاسم الظاهر (مثال: عبد الرحمن):")
+        new_dname = st.text_input("الاسم الظاهر للعضو:")
         new_bal = st.number_input(
-            "الرصيد الافتتاحي (روبي):", min_value=0.0, value=50.0
+            "الرصيد الافتتاحي (روبي):", min_value=0.0, value=0.0
         )
-        new_role = st.selectbox("الرتبة:", ["user", "admin"])
+        new_role = st.selectbox(
+            "نوع الحساب:", ["user", "admin"], format_func=lambda x: "عضو" if x == "user" else "مشرف"
+        )
 
-        if st.form_submit_button("✨ إنشاء الحساب"):
+        if st.form_submit_button("✨ إنشاء الحساب وإعطاؤه للعضو"):
           if new_user.strip() and new_pwd.strip():
             clean_un = new_user.strip().lower()
             conn = get_db()
@@ -541,9 +619,9 @@ if user["role"] == "admin":
       if not df_u.empty:
         target_user = st.selectbox("اختر العضو:", df_u["username"])
         add_sub = st.radio("نوع التعديل:", ["إضافة روبي ➕", "خصم روبي ➖"])
-        amount_mod = st.number_input("المبلغ:", min_value=1.0, value=10.0)
+        amount_mod = st.number_input("المبلغ:", min_value=0.5, value=10.0)
 
-        if st.button("✏️ حفظ التعديل"):
+        if st.button("✏️ تطبيق التعديل"):
           mod_val = amount_mod if "إضافة" in add_sub else -amount_mod
 
           conn = get_db()
@@ -560,7 +638,7 @@ if user["role"] == "admin":
                         VALUES (?, ?, ?, ?, ?)
                     """,
               (
-                  "إدارة البنك 👑",
+                  f"المشرف (@{user['username']})",
                   target_user,
                   mod_val,
                   "تعديل إداري مباشر",
@@ -573,24 +651,14 @@ if user["role"] == "admin":
           st.success("تم تعديل الرصيد بنجاح!")
           st.rerun()
 
-    # 3. عرض كافة الأعضاء
-    elif "عرض" in admin_action:
+    # 3. حذف حساب
+    elif "حذف" in admin_action:
       conn = get_db()
-      df_all = pd.read_sql_query(
-          "SELECT username AS 'اليوزر', display_name AS 'الاسم', balance AS"
-          " 'الرصيد', role AS 'الرتبة', last_daily_claim AS 'آخر سحب حظ' FROM"
-          " users",
+      df_del = pd.read_sql_query(
+          "SELECT username, display_name FROM users WHERE username NOT IN"
+          " ('aurther', 'lamino')",
           conn,
       )
       conn.close()
-      st.dataframe(df_all, use_container_width=True)
 
-    # 4. سجل الكل
-    elif "سجل" in admin_action:
-      conn = get_db()
-      df_all_tx = pd.read_sql_query(
-          "SELECT * FROM transactions ORDER BY id DESC", conn
-      )
-      conn.close()
-      st.dataframe(df_all_tx, use_container_width=True)
-      
+      if not df_del.e
