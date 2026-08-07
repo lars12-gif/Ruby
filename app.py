@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 # ==========================================
-# 1. إعدادات الصفحة والتصميم (Opal's Sakura Theme)
+# 1. إعدادات الصفحة والتصميم (Opal's Sakura)
 # ==========================================
 st.set_page_config(
     page_title="BELLONA | بنك الروبي", page_icon="🌸", layout="centered"
@@ -658,4 +658,4 @@ if user["role"] == "admin":
           c.execute("DELETE FROM users WHERE username = ?", (del_target,))
           c.execute(
               "DELETE FROM transactions WHERE sender = ? OR receiver = ?",
-              (del_target, del_t
+              (del_target, del_target)
