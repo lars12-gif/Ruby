@@ -320,13 +320,11 @@ def refresh_session():
 # ==========================================
 if not st.session_state["logged_in"]:
     st.markdown(
-        "<h1 style='text-align: center; color: #D81B60; font-weight: 900;'>🌸"
-        " BELLONA BANK 🌸</h1>",
+        "<h1 style='text-align: center; color: #D81B60; font-weight: 900;'>🌸 BELLONA BANK 🌸</h1>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        "<p style='text-align: center; color: #C2185B; font-weight: 700;'>✨"
-        " الخزنة المصرفية الملكية لعملة الروبي ✨</p>",
+        "<p style='text-align: center; color: #C2185B; font-weight: 700;'>✨ الخزنة المصرفية الملكية لعملة الروبي ✨</p>",
         unsafe_allow_html=True,
     )
 
@@ -547,4 +545,5 @@ with tabs[4]:
 
     with st.form("pwd_form"):
         st.write("🔑 **تغيير كلمة السر الخاصة بك**")
-        c_pwd = st.text_input("كلمة السر الحالية:", type="password"
+        c_pwd = st.text_input("كلمة السر الحالية:", type="password")
+        n_pwd = st.t
