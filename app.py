@@ -12,6 +12,7 @@ from supabase import create_client, Client
 # ==========================================
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+RUBY_SITE_URL = os.environ.get("RUBY_SITE_URL", "https://ruby-app.com")  # رابط موقع الروبي الافتراضي
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     st.error("⚠️ خطأ: لم يتم ضبط متطلبات Supabase في متغيرات البيئة (Environment Variables).")
@@ -166,6 +167,25 @@ st.markdown(
         color: #D81B60;
         text-shadow: 0px 4px 15px rgba(216, 27, 96, 0.25);
         margin: 10px 0;
+    }
+
+    /* زر الانتقال لموقع الروبي */
+    .ruby-site-btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #FF4081 0%, #D81B60 100%);
+        color: #FFFFFF !important;
+        font-weight: 800;
+        padding: 10px 22px;
+        border-radius: 16px;
+        text-decoration: none !important;
+        box-shadow: 0 6px 20px rgba(216, 27, 96, 0.35);
+        transition: all 0.3s ease;
+        margin-top: 10px;
+    }
+
+    .ruby-site-btn:hover {
+        transform: scale(1.03);
+        box-shadow: 0 8px 25px rgba(216, 27, 96, 0.5);
     }
 
     /* شارات الرتب الملكية */
@@ -342,6 +362,7 @@ elif user["role"] == "admin":
 else:
     role_badge = '<span class="badge-user">💎 عضو ملكي</span>'
 
+# عرض البطاقة الملكية + زر موقع الروبي
 st.markdown(
     f"""
     <div class="ruby-card">
@@ -350,7 +371,10 @@ st.markdown(
             {role_badge}
         </div>
         <div class="card-balance">{user['balance']:,.2f} <span style="font-size: 1.6rem;">روبي 💎</span></div>
-        <div style="font-size: 11px; color: #880E4F; font-weight: 700;">معرف الخزنة: RB-{hashlib.md5(user['username'].encode()).hexdigest()[:8].upper()}</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 11px; color: #880E4F; font-weight: 700;">معرف الخزنة: RB-{hashlib.md5(user['username'].encode()).hexdigest()[:8].upper()}</div>
+            <a href="{RUBY_SITE_URL}" target="_blank" class="ruby-site-btn">🌐 زيارة موقع الروبي 🚀</a>
+        </div>
     </div>
 """,
     unsafe_allow_html=True,
@@ -516,31 +540,4 @@ with tabs[4]:
                 st.error("❌ لا يمكن ترك كلمة السر فارغة!")
             elif n_pwd != conf_pwd:
                 st.error("❌ كلمات السر غير متطابقة!")
-            else:
-                supabase.table("users").update({
-                    "password_hash": hash_password(n_pwd)
-                }).eq("username", user["username"]).execute()
-                st.success("✅ تم تغيير كلمة السر بنجاح!")
-
-# --- التبويب 6: لوحة المشرفين (Aurther & Lamino) ---
-if user["role"] == "admin":
-    with tabs[5]:
-        st.subheader("🛡️ لوحة التحكم والإشراف العام")
-
-        act = st.radio(
-            "اختر الإجراء المطلوب:",
-            [
-                "➕ إضافة عضو جديد",
-                "💰 تعديل رصيد عضو",
-                "❌ حذف حساب",
-                "👥 عرض كافة الأعضاء",
-            ],
-            horizontal=True,
-        )
-
-        # 1. إضافة عضو جديد
-        if "إضافة" in act:
-            with st.form("add_form"):
-                st.write("📝 **إنشاء حساب بنكي جديد وتخصيص يوزر وباسوورد**")
-                un = st.text_input("اسم المستخدم (Username):")
-             
+   
