@@ -388,6 +388,7 @@ st.markdown(
 
 st.markdown(f'<a href="{OPALS_SITE_URL}" target="_blank" class="ruby-site-btn">✨ الانتقال إلى موقع نقاط التفاعل (Opal\'s) 🚀</a>', unsafe_allow_html=True)
 
+# قائمة التبويبات الفاخرة
 tabs_list = [
     "💸 التحويل الفوري",
     "🏆 قائمة الأثرياء",
@@ -401,7 +402,7 @@ if user["role"] == "admin":
 
 tabs = st.tabs(tabs_list)
 
-# --- تبويب التحويل (مع حل مشكلة التحديث) ---
+# --- التبويب 1: التحويل الفوري (مع حل مشكلة التحديث) ---
 with tabs[0]:
     st.subheader("💸 إجراء تحويل مالي سريح")
 
@@ -417,14 +418,14 @@ with tabs[0]:
         note = st.text_input("سبب / ملاحظة التحويل:", value="تحويل روبي 💎")
 
         if st.button("🚀 تحويل الروبي الآن"):
-            # تحديث البيانات قبل التأكد من الرصيد
+            # تحديث البيانات فوراً للتأكد من الرصيد الحالي
             refresh_session()
             user = st.session_state["user_data"]
             
             if user["balance"] < amt:
                 st.error("❌ رصيدك الحالي لا يكفي لإتمام التحويل!")
             else:
-                # 1. خصم من المرسل
+                # 1. خصم من المرسل أولاً
                 supabase.table("users").update({"balance": user["balance"] - amt}).eq("username", user["username"]).execute()
                 
                 # 2. إضافة للمستلم
@@ -433,7 +434,7 @@ with tabs[0]:
                 supabase.table("users").update({"balance": rec_bal + amt}).eq("username", rec_un).execute()
 
                 now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                # تسجيل المعاملة
+                # 3. تسجيل المعاملة
                 supabase.table("transactions").insert({
                     "sender": user["username"],
                     "receiver": rec_un,
@@ -444,15 +445,35 @@ with tabs[0]:
 
                 st.balloons()
                 st.success("✅ تم إتمام التحويل بنجاح!")
-                
-                # تحديث الجلسة وإعادة التحميل لإظهار الرصيد الجديد فوراً
+
+                # 4. إيصال رقمي
+                st.markdown(
+                    f"""
+                    <div class="receipt-box">
+                        <h4>📜 إيصال تحويل رقمي معتمد</h4>
+                        <p><b>المرسل:</b> @{user['username']} | <b>المستلم:</b> @{rec_un}</p>
+                        <p><b>المبلغ المحول:</b> <span style="font-size: 20px; font-weight: 900; color: #D81B60;">{amt:g} روبي 💎</span></p>
+                        <p><small>التاريخ والوقت: {now}</small></p>
+                    </div>
+                """,
+                    unsafe_allow_html=True,
+                )
+
                 refresh_session()
                 st.rerun()
-
     else:
         st.info("💡 لا يوجد أعضاء آخرين مسجلين في البنك حالياً.")
 
-# --- تبويب السحب اليومي (مع العداد) ---
+# --- التبويب 2: قائمة الأثرياء ---
+with tabs[1]:
+    st.subheader("🏆 ترتيب أثرياء بنك الروبي")
+    res_top = supabase.table("users").select("display_name, username, balance").order("balance", desc=True).limit(10).execute()
+    df_top = pd.DataFrame(res_top.data or [])
+    if not df_top.empty:
+        df_top = df_top.rename(columns={"display_name": "الاسم", "username": "اليوزر", "balance": "رصيد الروبي"})
+        st.dataframe(df_top, use_container_width=True)
+
+# --- التبويب 3: سحب الحظ اليومي (مع العداد) ---
 with tabs[2]:
     st.subheader("🎲 عجلة الحظ اليومية")
     st.write("جرب حظك كل 24 ساعة واحصل على مكافأة عشوائية تصل إلى **100 روبي**!")
@@ -463,10 +484,12 @@ with tabs[2]:
     can_claim = True
     remaining_time = ""
     
+    # التحقق من الوقت (يدعم التنسيق القديم والجديد)
     if last_claim_str and last_claim_str != "":
         try:
+            # نحاول تحويل الـ string إلى تاريخ
             last_claim_dt = datetime.datetime.strptime(last_claim_str, "%Y-%m-%d %H:%M:%S")
-            # نحسب 24 ساعة من آخر استلام
+            # نحسب فرق الوقت
             diff = (last_claim_dt + datetime.timedelta(hours=24)) - now
             if diff.total_seconds() > 0:
                 can_claim = False
@@ -474,7 +497,7 @@ with tabs[2]:
                 minutes, seconds = divmod(remainder, 60)
                 remaining_time = f"{hours} ساعة و {minutes} دقيقة و {seconds} ثانية"
         except:
-            # إذا كان الفورمات قديم (YYYY-MM-DD)، نصفر العداد
+            # إذا فشل التحويل (تنسيق قديم مثلاً)، نسمح بالاستلام
             can_claim = True
 
     if not can_claim:
@@ -502,15 +525,6 @@ with tabs[2]:
             refresh_session()
             st.rerun()
 
-# --- التبويب 2: قائمة الأثرياء ---
-with tabs[1]:
-    st.subheader("🏆 ترتيب أثرياء بنك الروبي")
-    res_top = supabase.table("users").select("display_name, username, balance").order("balance", desc=True).limit(10).execute()
-    df_top = pd.DataFrame(res_top.data or [])
-    if not df_top.empty:
-        df_top = df_top.rename(columns={"display_name": "الاسم", "username": "اليوزر", "balance": "رصيد الروبي"})
-        st.dataframe(df_top, use_container_width=True)
-
 # --- التبويب 4: سجل المعاملات ---
 with tabs[3]:
     st.subheader("📜 سجل التحويلات والاستلام الخاص بك")
@@ -534,10 +548,107 @@ with tabs[4]:
                 st.success("✅ تم تحديث كلمة السر!")
             else: st.error("❌ كلمة السر الحالية خاطئة.")
 
-# --- التبويب 6: لوحة المشرفين ---
+# --- التبويب 6: لوحة المشرفين (Aurther & Lamino) ---
 if user["role"] == "admin":
     with tabs[5]:
         st.subheader("🛡️ لوحة التحكم والإشراف العام")
-        # (بقية كود المشرفين كما هو تماماً)
-        act = st.radio("اختر الإجراء:", ["➕ إضافة عضو", "💰 تعديل رصيد", "❌ حذف حساب", "👥 عرض الأعضاء"], horizontal=True)
-        # ... بقية الكود هنا ...
+
+        act = st.radio(
+            "اختر الإجراء المطلوب:",
+            [
+                "➕ إضافة عضو جديد",
+                "💰 تعديل رصيد عضو",
+                "❌ حذف حساب",
+                "👥 عرض كافة الأعضاء",
+            ],
+            horizontal=True,
+        )
+
+        # 1. إضافة عضو جديد
+        if "إضافة" in act:
+            with st.form("add_form"):
+                st.write("📝 **إنشاء حساب بنكي جديد وتخصيص يوزر وباسوورد**")
+                un = st.text_input("اسم المستخدم (Username):")
+                pw = st.text_input("كلمة السر:", type="password")
+                dn = st.text_input("الاسم الظاهر للعضو:")
+                bal = st.number_input("الرصيد الافتتاحي (روبي):", min_value=0.0, value=0.0)
+                rl = st.selectbox("الرتبة:", ["user", "admin"], format_func=lambda x: "عضو" if x == "user" else "مشرف")
+
+                if st.form_submit_button("✨ إنشاء الحساب"):
+                    if un.strip() and pw.strip():
+                        clean_un = un.strip().lower()
+                        
+                        check_res = supabase.table("users").select("username").eq("username", clean_un).execute()
+                        if check_res.data:
+                            st.error("❌ اسم المستخدم هذا مسجل مسبقاً!")
+                        else:
+                            supabase.table("users").insert({
+                                "username": clean_un,
+                                "password_hash": hash_password(pw),
+                                "display_name": dn.strip(),
+                                "balance": bal,
+                                "role": rl,
+                                "last_daily_claim": ""
+                            }).execute()
+                            st.success(f"✅ تم إنشاء حساب @{clean_un} بنجاح!")
+
+        # 2. تعديل رصيد
+        elif "تعديل" in act:
+            res_u = supabase.table("users").select("username, display_name").execute()
+            df_u = pd.DataFrame(res_u.data or [])
+
+            if not df_u.empty:
+                usr = st.selectbox("اختر العضو:", df_u["username"])
+                tp = st.radio("نوع العملية:", ["إضافة روبي ➕", "خصم روبي ➖"])
+                val = st.number_input("المبلغ:", min_value=0.5, value=10.0)
+
+                if st.button("✏️ تطبيق التعديل"):
+                    m = val if "إضافة" in tp else -val
+                    
+                    res_usr = supabase.table("users").select("balance").eq("username", usr).execute()
+                    current_balance = res_usr.data[0]["balance"]
+                    
+                    supabase.table("users").update({"balance": current_balance + m}).eq("username", usr).execute()
+
+                    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    supabase.table("transactions").insert({
+                        "sender": f"المشرف (@{user['username']})",
+                        "receiver": usr,
+                        "amount": m,
+                        "note": "تعديل إداري",
+                        "timestamp": now
+                    }).execute()
+                    
+                    st.success("تم تعديل الرصيد بنجاح!")
+                    st.rerun()
+
+        # 3. حذف حساب
+        elif "حذف" in act:
+            res_d = supabase.table("users").select("username").neq("username", "aurther").neq("username", "lamino").execute()
+            df_d = pd.DataFrame(res_d.data or [])
+
+            if not df_d.empty:
+                dt = st.selectbox("اختر الحساب للحذف:", df_d["username"])
+                if st.button(f"🔥 حذف حساب @{dt} نهائياً"):
+                    supabase.table("users").delete().eq("username", dt).execute()
+                    supabase.table("transactions").delete().eq("sender", dt).execute()
+                    supabase.table("transactions").delete().eq("receiver", dt).execute()
+                    
+                    st.success(f"تم حذف الحساب @{dt} بنجاح!")
+                    st.rerun()
+            else:
+                st.info("لا توجد حسابات قابلة للحذف حالياً.")
+
+        # 4. عرض كافة الأعضاء
+        elif "عرض" in act:
+            res_all = supabase.table("users").select("username, display_name, balance, role").execute()
+            df_all = pd.DataFrame(res_all.data or [])
+            
+            if not df_all.empty:
+                df_all = df_all.rename(columns={
+                    "username": "اليوزر",
+                    "display_name": "الاسم الظاهر",
+                    "balance": "رصيد الروبي",
+                    "role": "الرتبة"
+                })
+                st.dataframe(df_all, use_container_width=True)
