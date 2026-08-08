@@ -8,11 +8,12 @@ import os
 from supabase import create_client, Client
 
 # ==========================================
-# 0. إعداد الاتصال بـ Supabase
+# 0. إعداد الاتصال بـ Supabase ورابط الموقع
 # ==========================================
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-RUBY_SITE_URL = os.environ.get("RUBY_SITE_URL", "https://ruby-app.com")  # رابط موقع الروبي الافتراضي
+# يمكنك تغيير رابط الموقع هنا مباشر أو من متغيرات البيئة بـ Render
+RUBY_SITE_URL = os.environ.get("RUBY_SITE_URL", "https://ruby-app.com")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     st.error("⚠️ خطأ: لم يتم ضبط متطلبات Supabase في متغيرات البيئة (Environment Variables).")
@@ -30,7 +31,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. محرك الصوت، المؤثرات الحركية (Particles & Sound FX)
+# 2. محرك الصوت والمؤثرات الحركية (Particles & Sound FX)
 # ==========================================
 components.html(
     """
@@ -171,20 +172,23 @@ st.markdown(
 
     /* زر الانتقال لموقع الروبي */
     .ruby-site-btn {
-        display: inline-block;
+        display: block;
+        width: 100%;
+        text-align: center;
         background: linear-gradient(135deg, #FF4081 0%, #D81B60 100%);
         color: #FFFFFF !important;
         font-weight: 800;
-        padding: 10px 22px;
+        font-size: 1.1rem;
+        padding: 12px 20px;
         border-radius: 16px;
         text-decoration: none !important;
         box-shadow: 0 6px 20px rgba(216, 27, 96, 0.35);
         transition: all 0.3s ease;
-        margin-top: 10px;
+        margin-bottom: 20px;
     }
 
     .ruby-site-btn:hover {
-        transform: scale(1.03);
+        transform: scale(1.02);
         box-shadow: 0 8px 25px rgba(216, 27, 96, 0.5);
     }
 
@@ -278,7 +282,7 @@ st.markdown(
 # 4. دالّات التعامل مع قاعدة البيانات
 # ==========================================
 def hash_password(pwd):
-    return hashlib.sha256(pwd.encode()).hexdigest()
+    return hashlib.sha256(pwd.strip().encode('utf-8')).hexdigest()
 
 def fetch_user(username):
     res = supabase.table("users").select("*").eq("username", username).execute()
@@ -300,7 +304,7 @@ def refresh_session():
         )
 
 # ==========================================
-# 6. شاشة تسجيل الدخول
+# 6. شاشة تسجيل الدخول + زر موقع الروبي الرئيسي
 # ==========================================
 if not st.session_state["logged_in"]:
     st.markdown(
@@ -314,6 +318,12 @@ if not st.session_state["logged_in"]:
         unsafe_allow_html=True,
     )
 
+    # 🌐 زر زيارة موقع الروبي بصفحة الدخول الرئيسية قبل التسجيل
+    st.markdown(
+        f'<a href="{RUBY_SITE_URL}" target="_blank" class="ruby-site-btn">🌐 زيارة موقع الروبي الملكي 🚀</a>',
+        unsafe_allow_html=True,
+    )
+
     with st.form("login_form"):
         st.subheader("🔑 تسجيل الدخول لـ حسابك")
         username_in = st.text_input("اسم المستخدم (Username):")
@@ -321,9 +331,10 @@ if not st.session_state["logged_in"]:
 
         if st.form_submit_button("🚀 دخول الخزنة الملكية"):
             clean_un = username_in.strip().lower()
+            clean_pwd = password_in.strip()
             u_data = fetch_user(clean_un)
 
-            if u_data and u_data["password_hash"] == hash_password(password_in):
+            if u_data and (u_data["password_hash"] == hash_password(clean_pwd) or u_data["password_hash"] == clean_pwd):
                 st.session_state["logged_in"] = True
                 st.session_state["user_data"] = u_data
                 st.success("تم تسجيل الدخول بنجاح!")
@@ -335,7 +346,7 @@ if not st.session_state["logged_in"]:
     st.stop()
 
 # ==========================================
-# 7. الواجهة الرئيسية
+# 7. الواجهة الرئيسية (بعد تسجيل الدخول)
 # ==========================================
 refresh_session()
 user = st.session_state["user_data"]
@@ -362,7 +373,6 @@ elif user["role"] == "admin":
 else:
     role_badge = '<span class="badge-user">💎 عضو ملكي</span>'
 
-# عرض البطاقة الملكية + زر موقع الروبي
 st.markdown(
     f"""
     <div class="ruby-card">
@@ -371,12 +381,15 @@ st.markdown(
             {role_badge}
         </div>
         <div class="card-balance">{user['balance']:,.2f} <span style="font-size: 1.6rem;">روبي 💎</span></div>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="font-size: 11px; color: #880E4F; font-weight: 700;">معرف الخزنة: RB-{hashlib.md5(user['username'].encode()).hexdigest()[:8].upper()}</div>
-            <a href="{RUBY_SITE_URL}" target="_blank" class="ruby-site-btn">🌐 زيارة موقع الروبي 🚀</a>
-        </div>
+        <div style="font-size: 11px; color: #880E4F; font-weight: 700;">معرف الخزنة: RB-{hashlib.md5(user['username'].encode()).hexdigest()[:8].upper()}</div>
     </div>
 """,
+    unsafe_allow_html=True,
+)
+
+# زر زيارة موقع الروبي بداخل الصفحة أيضاً
+st.markdown(
+    f'<a href="{RUBY_SITE_URL}" target="_blank" class="ruby-site-btn">🌐 الانتقال لموقع الروبي 🚀</a>',
     unsafe_allow_html=True,
 )
 
@@ -413,10 +426,7 @@ with tabs[0]:
             if user["balance"] < amt:
                 st.error("❌ رصيدك الحالي لا يكفي لإتمام التحويل!")
             else:
-                # خصم من المرسل
                 supabase.table("users").update({"balance": user["balance"] - amt}).eq("username", user["username"]).execute()
-                
-                # إضافة للمستلم
                 rec_data = fetch_user(rec_un)
                 supabase.table("users").update({"balance": rec_data["balance"] + amt}).eq("username", rec_un).execute()
 
@@ -533,11 +543,4 @@ with tabs[4]:
         n_pwd = st.text_input("كلمة السر الجديدة:", type="password")
         conf_pwd = st.text_input("تأكيد كلمة السر الجديدة:", type="password")
 
-        if st.form_submit_button("✏️ تحديث كلمة السر"):
-            if hash_password(c_pwd) != user["password_hash"]:
-                st.error("❌ كلمة السر الحالية غير صحيحة!")
-            elif n_pwd.strip() == "":
-                st.error("❌ لا يمكن ترك كلمة السر فارغة!")
-            elif n_pwd != conf_pwd:
-                st.error("❌ كلمات السر غير متطابقة!")
-   
+        if st.
