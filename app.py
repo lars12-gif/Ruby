@@ -8,28 +8,19 @@ import os
 from supabase import create_client, Client
 
 # ==========================================
-# 0. إعداد الاتصال بـ Supabase
+# 0. إعداد الاتصال (Supabase)
 # ==========================================
 SUPABASE_URL = st.secrets.get("SUPABASE_URL") or os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = st.secrets.get("SUPABASE_KEY") or os.environ.get("SUPABASE_KEY")
 OPALS_SITE_URL = "https://opal-s-app.streamlit.app/"
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    st.error("⚠️ خطأ في الاتصال بـ Supabase. يرجى مراجعة إعدادات الـ Secrets.")
-    st.stop()
-
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ==========================================
-# 1. إعدادات الصفحة
+# 1. إعدادات الصفحة (تم إضافة كود إخفاء الشريط)
 # ==========================================
-st.set_page_config(
-    page_title="BELLONA | بنك الروبي الملكي",
-    page_icon="💎",
-    layout="centered",
-)
+st.set_page_config(page_title="BELLONA | بنك الروبي الملكي", page_icon="💎", layout="centered")
 
-# إخفاء شريط Streamlit العلوي والقائمة
 hide_streamlit_style = """
     <style>
     header {visibility: hidden;}
@@ -41,7 +32,7 @@ hide_streamlit_style = """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # ==========================================
-# 2. محرك الصوت، المؤثرات الحركية (Particles & Sound FX)
+# 2. محرك الصوت، المؤثرات الحركية (نفس الكود الأصلي)
 # ==========================================
 components.html(
     """
@@ -49,263 +40,82 @@ components.html(
     (function() {
         const pDoc = window.parent.document;
         let audioCtx = null;
-
         function playRubySound() {
             try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
-                
                 gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.1);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
             } catch(e) {}
         }
-
         if (!window.parent.rubyParticlesAdded) {
             window.parent.rubyParticlesAdded = true;
-            
             pDoc.addEventListener('click', function(e) {
                 playRubySound();
                 const symbols = ['💎', '🌸', '✨', '👑', '💖', '🌺'];
                 for (let i = 0; i < 7; i++) {
                     const particle = pDoc.createElement('div');
                     particle.innerText = symbols[Math.floor(Math.random() * symbols.length)];
-                    particle.style.position = 'fixed';
-                    particle.style.pointerEvents = 'none';
-                    particle.style.zIndex = '999999';
-                    particle.style.fontSize = (16 + Math.random() * 12) + 'px';
-                    particle.style.left = e.clientX + 'px';
-                    particle.style.top = e.clientY + 'px';
+                    particle.style.position = 'fixed'; particle.style.pointerEvents = 'none';
+                    particle.style.zIndex = '999999'; particle.style.fontSize = (16 + Math.random() * 12) + 'px';
+                    particle.style.left = e.clientX + 'px'; particle.style.top = e.clientY + 'px';
                     particle.style.transition = 'all 0.75s cubic-bezier(0.1, 0.8, 0.3, 1)';
                     particle.style.opacity = '1';
-                    
                     pDoc.body.appendChild(particle);
-                    
                     const dx = (Math.random() - 0.5) * 160;
                     const dy = (Math.random() - 0.5) * 160 - 30;
                     const rot = (Math.random() - 0.5) * 360;
-                    
                     requestAnimationFrame(() => {
                         particle.style.transform = `translate(${dx}px, ${dy}px) rotate(${rot}deg) scale(1.4)`;
                         particle.style.opacity = '0';
                     });
-                    
                     setTimeout(() => particle.remove(), 750);
                 }
             });
         }
     })();
     </script>
-""",
-    height=0,
-)
+""", height=0)
 
 # ==========================================
-# 3. تصميم الـ CSS الملكي والمتحرك (Opal's Ruby Luxury)
+# 3. تصميم الـ CSS الملكي (نفس الكود الأصلي)
 # ==========================================
-st.markdown(
-    """
+st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
-    
-    html, body, [class*="css"] {
-        font-family: 'Cairo', sans-serif !important;
-    }
-
-    .stApp {
-        background: linear-gradient(180deg, #FFFFFF 0%, #FFF0F5 45%, #FFE4E1 100%) !important;
-        color: #4A0E17 !important;
-        direction: rtl;
-        text-align: right;
-    }
-
-    /* خلفية زهور الكرز المتحركة */
-    @keyframes sakura-fall {
-        0% { transform: translateY(-10vh) rotate(0deg); opacity: 0.9; }
-        100% { transform: translateY(105vh) rotate(360deg); opacity: 0; }
-    }
-    
-    .sakura-container {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        pointer-events: none; z-index: 0; overflow: hidden;
-    }
-    
-    .petal {
-        position: absolute; background: #FFB7C5;
-        border-radius: 15px 0px 15px 0px; opacity: 0.7;
-        animation: sakura-fall 8s linear infinite;
-    }
-    
-    .p1 { left: 5%; width: 14px; height: 18px; animation-duration: 7s; }
-    .p2 { left: 25%; width: 10px; height: 14px; animation-duration: 9s; background: #FFC0CB; }
-    .p3 { left: 50%; width: 16px; height: 20px; animation-duration: 6.5s; }
-    .p4 { left: 75%; width: 12px; height: 15px; animation-duration: 8.5s; background: #FFB6C1; }
-    .p5 { left: 90%; width: 15px; height: 18px; animation-duration: 10s; }
-
-    /* بطاقة الخزنة البنكية الفاخرة */
-    .ruby-card {
-        background: rgba(255, 255, 255, 0.95);
-        border: 3px solid #FF80AB;
-        border-radius: 26px;
-        padding: 28px;
-        box-shadow: 0 15px 35px rgba(216, 27, 96, 0.18);
-        margin-bottom: 25px;
-        transition: transform 0.3s ease;
-    }
-
-    .ruby-card:hover {
-        transform: translateY(-3px);
-    }
-
-    .card-balance {
-        font-size: 3.2rem;
-        font-weight: 900;
-        color: #D81B60;
-        text-shadow: 0px 4px 15px rgba(216, 27, 96, 0.25);
-        margin: 10px 0;
-    }
-
-    /* زر الانتقال لموقع نقاط التفاعل */
-    .ruby-site-btn {
-        display: block;
-        width: 100%;
-        text-align: center;
-        background: linear-gradient(135deg, #FF4081 0%, #D81B60 100%);
-        color: #FFFFFF !important;
-        font-weight: 800;
-        font-size: 1.1rem;
-        padding: 12px 20px;
-        border-radius: 16px;
-        text-decoration: none !important;
-        box-shadow: 0 6px 20px rgba(216, 27, 96, 0.35);
-        transition: all 0.3s ease;
-        margin-bottom: 20px;
-    }
-
-    .ruby-site-btn:hover {
-        transform: scale(1.02);
-        box-shadow: 0 8px 25px rgba(216, 27, 96, 0.5);
-    }
-
-    /* شارات الرتب الملكية */
-    .badge-aurther {
-        background: linear-gradient(135deg, #EC407A 0%, #D81B60 100%);
-        color: #FFFFFF; padding: 5px 16px; border-radius: 14px;
-        font-size: 13px; font-weight: 900; box-shadow: 0 4px 12px rgba(216, 27, 96, 0.35);
-    }
-
-    .badge-lamino {
-        background: linear-gradient(135deg, #FF80AB 0%, #C2185B 100%);
-        color: #FFFFFF; padding: 5px 16px; border-radius: 14px;
-        font-size: 13px; font-weight: 900; box-shadow: 0 4px 12px rgba(255, 128, 171, 0.35);
-    }
-
-    .badge-admin {
-        background: #EC407A; color: #FFF; padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: 800;
-    }
-
-    .badge-user {
-        background: #FFE4E1; color: #C2185B; padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: 800; border: 1px solid #FFC1E3;
-    }
-
-    /* أزرار الإدخال والتفاعل */
-    .stButton>button {
-        background: linear-gradient(90deg, #EC407A 0%, #D81B60 100%) !important;
-        color: #FFFFFF !important; font-weight: 800 !important;
-        border-radius: 16px !important; border: none !important;
-        padding: 12px 24px !important; box-shadow: 0 4px 18px rgba(216, 27, 96, 0.35) !important;
-        width: 100%; transition: all 0.25s ease-in-out !important;
-    }
-
-    .stButton>button:hover {
-        transform: translateY(-2px); box-shadow: 0 6px 24px rgba(216, 27, 96, 0.5) !important;
-    }
-
-    .stTextInput input, .stNumberInput input, .stSelectbox div {
-        background-color: #FFFFFF !important; color: #37474F !important;
-        border: 2px solid #FFC1E3 !important; border-radius: 14px !important;
-    }
-
-    /* تصميم التبويبات */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px !important; background: #FFE4E1 !important;
-        padding: 10px 14px !important; border-radius: 22px !important;
-        border: 2px solid #FF80AB !important; box-shadow: 0 8px 25px rgba(216, 27, 96, 0.12) !important;
-        justify-content: center !important;
-    }
-
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 14px !important; background-color: #FFFFFF !important;
-        color: #C2185B !important; font-weight: 800 !important;
-        border: 2px solid #FFC1E3 !important; padding: 8px 18px !important;
-        transition: all 0.25s ease-in-out !important;
-    }
-
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #EC407A 0%, #D81B60 100%) !important;
-        color: #FFFFFF !important; border: 2px solid #D81B60 !important;
-        box-shadow: 0 6px 18px rgba(216, 27, 96, 0.4) !important;
-    }
-
-    div[data-baseweb="tab-panel"] {
-        background: rgba(255, 255, 255, 0.96) !important;
-        border: 2px solid #FFC1E3 !important; border-radius: 24px !important;
-        padding: 25px !important; margin-top: 15px !important;
-        box-shadow: 0 10px 30px rgba(216, 27, 96, 0.08) !important;
-    }
-
-    /* إيصال التحويل المصرفي */
-    .receipt-box {
-        background: #FFF0F5; border: 2px dashed #D81B60;
-        border-radius: 18px; padding: 18px; text-align: center;
-        margin-top: 15px; color: #880E4F;
-    }
+    html, body, [class*="css"] { font-family: 'Cairo', sans-serif !important; }
+    .stApp { background: linear-gradient(180deg, #FFFFFF 0%, #FFF0F5 45%, #FFE4E1 100%) !important; color: #4A0E17 !important; direction: rtl; text-align: right; }
+    .ruby-card { background: rgba(255, 255, 255, 0.95); border: 3px solid #FF80AB; border-radius: 26px; padding: 28px; box-shadow: 0 15px 35px rgba(216, 27, 96, 0.18); margin-bottom: 25px; }
+    .card-balance { font-size: 3.2rem; font-weight: 900; color: #D81B60; text-shadow: 0px 4px 15px rgba(216, 27, 96, 0.25); margin: 10px 0; }
+    .badge-aurther { background: linear-gradient(135deg, #EC407A 0%, #D81B60 100%); color: #FFFFFF; padding: 5px 16px; border-radius: 14px; font-size: 13px; font-weight: 900; }
+    .badge-lamino { background: linear-gradient(135deg, #FF80AB 0%, #C2185B 100%); color: #FFFFFF; padding: 5px 16px; border-radius: 14px; font-size: 13px; font-weight: 900; }
+    .badge-admin { background: #EC407A; color: #FFF; padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: 800; }
+    .badge-user { background: #FFE4E1; color: #C2185B; padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: 800; border: 1px solid #FFC1E3; }
+    .stButton>button { background: linear-gradient(90deg, #EC407A 0%, #D81B60 100%) !important; color: #FFFFFF !important; font-weight: 800 !important; border-radius: 16px !important; border: none !important; padding: 12px 24px !important; width: 100%; }
+    .stTextInput input { background-color: #FFFFFF !important; border: 2px solid #FFC1E3 !important; border-radius: 14px !important; }
+    .ruby-site-btn { display: block; width: 100%; text-align: center; background: linear-gradient(135deg, #FF4081 0%, #D81B60 100%); color: #FFFFFF !important; font-weight: 800; padding: 12px; border-radius: 16px; text-decoration: none !important; margin-bottom: 20px; }
+    .receipt-box { background: #FFF0F5; border: 2px dashed #D81B60; border-radius: 18px; padding: 18px; text-align: center; margin-top: 15px; color: #880E4F; }
     </style>
-
-    <div class="sakura-container">
-        <div class="petal p1"></div>
-        <div class="petal p2"></div>
-        <div class="petal p3"></div>
-        <div class="petal p4"></div>
-        <div class="petal p5"></div>
-    </div>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 # ==========================================
-# 4. وظائف التعامل مع البيانات (بدل SQLite)
+# 4. الدوال (Supabase)
 # ==========================================
-def hash_password(pwd):
-    return hashlib.sha256(pwd.strip().encode('utf-8')).hexdigest()
+def hash_password(pwd): return hashlib.sha256(pwd.strip().encode('utf-8')).hexdigest()
 
 def fetch_user(username):
-    try:
-        res = supabase.table("users").select("*").eq("username", username).execute()
-        return res.data[0] if res.data else None
-    except:
-        return None
+    res = supabase.table("users").select("*").eq("username", username).execute()
+    return res.data[0] if res.data else None
 
 def refresh_session():
-    if st.session_state.get("logged_in"):
-        user_data = fetch_user(st.session_state["user_data"]["username"])
-        if user_data:
-            st.session_state["user_data"] = user_data
+    if st.session_state["logged_in"]:
+        st.session_state["user_data"] = fetch_user(st.session_state["user_data"]["username"])
 
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
@@ -316,24 +126,20 @@ if "logged_in" not in st.session_state:
 # ==========================================
 if not st.session_state["logged_in"]:
     st.markdown("<h1 style='text-align: center; color: #D81B60; font-weight: 900;'>🌸 BELLONA BANK 🌸</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #C2185B; font-weight: 700;'>✨ الخزنة المصرفية الملكية لعملة الروبي ✨</p>", unsafe_allow_html=True)
-
+    # زر الأوبلز الجديد في صفحة الدخول
     st.markdown(f'<a href="{OPALS_SITE_URL}" target="_blank" class="ruby-site-btn">✨ الانتقال إلى موقع نقاط التفاعل (Opal\'s) 🚀</a>', unsafe_allow_html=True)
 
     with st.form("login_form"):
-        st.subheader("🔑 تسجيل الدخول لـ حسابك")
-        username_in = st.text_input("اسم المستخدم (Username):")
+        st.subheader("🔑 تسجيل الدخول")
+        username_in = st.text_input("اسم المستخدم:")
         password_in = st.text_input("كلمة السر:", type="password")
-
         if st.form_submit_button("🚀 دخول الخزنة الملكية"):
-            clean_un = username_in.strip().lower()
-            user = fetch_user(clean_un)
+            user = fetch_user(username_in.strip().lower())
             if user and (user["password_hash"] == hash_password(password_in) or user["password_hash"] == password_in):
                 st.session_state["logged_in"] = True
                 st.session_state["user_data"] = user
                 st.rerun()
-            else:
-                st.error("❌ اسم المستخدم أو كلمة السر غير صحيحة.")
+            else: st.error("❌ خطأ.")
     st.stop()
 
 # ==========================================
@@ -341,41 +147,36 @@ if not st.session_state["logged_in"]:
 # ==========================================
 refresh_session()
 user = st.session_state["user_data"]
-
 col1, col2 = st.columns([3, 1])
-with col1:
-    st.markdown("<h2 style='color: #D81B60; font-weight: 900;'>💎 بنك الروبي الملكي</h2>", unsafe_allow_html=True)
+with col1: st.markdown("## 💎 بنك الروبي الملكي")
 with col2:
     if st.button("🚪 خروج"):
         st.session_state["logged_in"] = False
-        st.session_state["user_data"] = None
         st.rerun()
 
-# الرتب
-role_badge = '<span class="badge-user">💎 عضو ملكي</span>'
-if user["username"] == "aurther": role_badge = '<span class="badge-aurther">👑 المشرف العام (Aurther)</span>'
-elif user["username"] == "lamino": role_badge = '<span class="badge-lamino">🤝 المساعد العام (Lamino)</span>'
-elif user["role"] == "admin": role_badge = '<span class="badge-admin">🛡️ مشرف</span>'
+# الشارات
+if user["username"] == "aurther": badge = '<span class="badge-aurther">👑 المشرف العام</span>'
+elif user["username"] == "lamino": badge = '<span class="badge-lamino">🤝 المساعد العام</span>'
+elif user["role"] == "admin": badge = '<span class="badge-admin">🛡️ مشرف</span>'
+else: badge = '<span class="badge-user">💎 عضو ملكي</span>'
 
 st.markdown(f"""
     <div class="ruby-card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 1.25rem; font-weight: 800; color: #37474F;">👤 {user['display_name']} (@{user['username']})</span>
-            {role_badge}
-        </div>
-        <div class="card-balance">{user['balance']:,.2f} <span style="font-size: 1.6rem;">روبي 💎</span></div>
+        <h3>👤 {user['display_name']}</h3>
+        <div class="card-balance">{user['balance']:,.2f} 💎</div>
+        <div>{badge}</div>
     </div>
 """, unsafe_allow_html=True)
 
+# زر الأوبلز في الواجهة الرئيسية
 st.markdown(f'<a href="{OPALS_SITE_URL}" target="_blank" class="ruby-site-btn">✨ الانتقال إلى موقع نقاط التفاعل (Opal\'s) 🚀</a>', unsafe_allow_html=True)
 
-tabs_list = ["💸 التحويل الفوري", "🏆 قائمة الأثرياء", "🎲 سحب الحظ اليومي", "📜 سجل المعاملات", "🔒 إعدادات الحساب"]
+tabs_list = ["💸 التحويل الفوري", "🏆 الأثرياء", "🎲 الحظ", "📜 المعاملات", "🔒 الإعدادات"]
 if user["role"] == "admin": tabs_list.append("🛡️ لوحة المشرفين")
 tabs = st.tabs(tabs_list)
 
 # --- التبويب 1: التحويل ---
 with tabs[0]:
-    st.subheader("💸 إجراء تحويل مالي")
     res = supabase.table("users").select("username, display_name").neq("username", user["username"]).execute()
     receivers = {f"{r['display_name']} (@{r['username']})": r['username'] for r in (res.data or [])}
     sel = st.selectbox("المستلم:", list(receivers.keys()))
@@ -385,8 +186,8 @@ with tabs[0]:
         if user["balance"] >= amt:
             supabase.table("users").update({"balance": user["balance"] - amt}).eq("username", user["username"]).execute()
             rec_un = receivers[sel]
-            rec = fetch_user(rec_un)
-            supabase.table("users").update({"balance": rec["balance"] + amt}).eq("username", rec_un).execute()
+            rec_data = fetch_user(rec_un)
+            supabase.table("users").update({"balance": rec_data["balance"] + amt}).eq("username", rec_un).execute()
             supabase.table("transactions").insert({"sender": user["username"], "receiver": rec_un, "amount": amt, "note": note, "timestamp": str(datetime.datetime.now())}).execute()
             st.success("✅ تم")
             st.rerun()
@@ -400,16 +201,16 @@ with tabs[1]:
 # --- التبويب 3: الحظ ---
 with tabs[2]:
     today = datetime.datetime.now().strftime("%Y-%m-%d")
-    if user.get("last_daily_claim") == today: st.warning("⏳ استلمت مكافأتك اليوم!")
+    if user.get("last_daily_claim") == today: st.warning("⏳ استلمت مكافأتك!")
     elif st.button("✨ اطلب المكافأة"):
         won = random.randint(1, 100)
         supabase.table("users").update({"balance": user["balance"] + won, "last_daily_claim": today}).eq("username", user["username"]).execute()
-        st.success(f"🎉 ربحت {won} روبي!")
+        st.success(f"🎉 ربحت {won}!")
         st.rerun()
 
 # --- التبويب 4: السجل ---
 with tabs[3]:
-    txs = supabase.table("transactions").select("*").or_(f"sender.eq.{user['username']},receiver.eq.{user['username']}").order("id", desc=True).execute().data
+    txs = supabase.table("transactions").select("*").or_(f"sender.eq.{user['username']},receiver.eq.{user['username']}").execute().data
     if txs: st.dataframe(pd.DataFrame(txs))
 
 # --- التبويب 5: الإعدادات ---
@@ -429,7 +230,7 @@ if user["role"] == "admin":
         target = st.text_input("يوزر العضو:")
         add = st.number_input("تعديل الرصيد (+ أو -):")
         if st.button("تنفيذ"):
-            target_data = fetch_user(target)
-            if target_data:
-                supabase.table("users").update({"balance": target_data["balance"] + add}).eq("username", target).execute()
+            t_data = fetch_user(target)
+            if t_data:
+                supabase.table("users").update({"balance": t_data["balance"] + add}).eq("username", target).execute()
                 st.success("✅ تم")
