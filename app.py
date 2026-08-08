@@ -10,12 +10,12 @@ from supabase import create_client, Client
 # ==========================================
 # 0. إعداد الاتصال بـ Supabase ورابط الموقع
 # ==========================================
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+SUPABASE_URL = st.secrets.get("SUPABASE_URL") or os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = st.secrets.get("SUPABASE_KEY") or os.environ.get("SUPABASE_KEY")
 OPALS_SITE_URL = "https://opal-s-app.streamlit.app/"
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    st.error("⚠️ خطأ: لم يتم ضبط متطلبات Supabase في متغيرات البيئة (Environment Variables).")
+    st.error("⚠️ خطأ: لم يتم ضبط متطلبات Supabase في متغيرات البيئة (Secrets / Environment Variables).")
     st.stop()
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -545,5 +545,4 @@ with tabs[4]:
 
     with st.form("pwd_form"):
         st.write("🔑 **تغيير كلمة السر الخاصة بك**")
-        c_pwd = st.text_input("كلمة السر الحالية:", type="password")
-        n_pwd = st.t
+        c_p
