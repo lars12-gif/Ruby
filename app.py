@@ -620,4 +620,117 @@ if user["role"] == "admin":
     st.subheader("🛡️ لوحة التحكم والإشراف العام")
 
     act = st.radio(
-   
+        "اختر الإجراء المطلوب:",
+        [
+            "➕ إضافة عضو جديد",
+            "💰 تعديل رصيد عضو",
+            "❌ حذف حساب",
+            "👥 عرض كافة الأعضاء",
+        ],
+        horizontal=True,
+    )
+
+    # 1. إضافة عضو جديد
+    if "إضافة" in act:
+      with st.form("add_form"):
+        st.write("📝 **إنشاء حساب بنكي جديد وتخصيص يوزر وباسوورد**")
+        un = st.text_input("اسم المستخدم (Username):")
+        pw = st.text_input("كلمة السر:", type="password")
+        dn = st.text_input("الاسم الظاهر للعضو:")
+        bal = st.number_input(
+            "الرصيد الافتتاحي (روبي):", min_value=0.0, value=0.0
+        )
+        rl = st.selectbox(
+            "الرتبة:",
+            ["user", "admin"],
+            format_func=lambda x: "عضو" if x == "user" else "مشرف",
+        )
+
+        if st.form_submit_button("✨ إنشاء الحساب"):
+          if un.strip() and pw.strip():
+            clean_un = un.strip().lower()
+            conn = get_db()
+            c = conn.cursor()
+            try:
+              c.execute(
+                  "INSERT INTO users VALUES (?, ?, ?, ?, ?, '')",
+                  (clean_un, hash_password(pw), dn.strip(), bal, rl),
+              )
+              conn.commit()
+              st.success(f"✅ تم إنشاء حساب @{clean_un} بنجاح!")
+            except sqlite3.IntegrityError:
+              st.error("❌ اسم المستخدم هذا مسجل مسبقاً!")
+            finally:
+              conn.close()
+
+    # 2. تعديل رصيد
+    elif "تعديل" in act:
+      conn = get_db()
+      df_u = pd.read_sql_query(
+          "SELECT username, display_name FROM users", conn
+      )
+      conn.close()
+
+      if not df_u.empty:
+        usr = st.selectbox("اختر العضو:", df_u["username"])
+        tp = st.radio("نوع العملية:", ["إضافة روبي ➕", "خصم روبي ➖"])
+        val = st.number_input("المبلغ:", min_value=0.5, value=10.0)
+
+        if st.button("✏️ تطبيق التعديل"):
+          m = val if "إضافة" in tp else -val
+          conn = get_db()
+          c = conn.cursor()
+          c.execute(
+              "UPDATE users SET balance = balance + ? WHERE username = ?",
+              (m, usr),
+          )
+
+          now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+          c.execute(
+              "INSERT INTO transactions VALUES (NULL, ?, ?, ?, 'تعديل إداري',"
+              " ?)",
+              (f"المشرف (@{user['username']})", usr, m, now),
+          )
+
+          conn.commit()
+          conn.close()
+          st.success("تم تعديل الرصيد بنجاح!")
+          st.rerun()
+
+    # 3. حذف حساب
+    elif "حذف" in act:
+      conn = get_db()
+      df_d = pd.read_sql_query(
+          "SELECT username FROM users WHERE username NOT IN ('aurther',"
+          " 'lamino')",
+          conn,
+      )
+      conn.close()
+
+      if not df_d.empty:
+        dt = st.selectbox("اختر الحساب للحذف:", df_d["username"])
+        if st.button(f"🔥 حذف حساب @{dt} نهائياً"):
+          conn = get_db()
+          c = conn.cursor()
+          c.execute("DELETE FROM users WHERE username = ?", (dt,))
+          c.execute(
+              "DELETE FROM transactions WHERE sender = ? OR receiver = ?",
+              (dt, dt),
+          )
+          conn.commit()
+          conn.close()
+          st.success(f"تم حذف الحساب @{dt} بنجاح!")
+          st.rerun()
+      else:
+        st.info("لا توجد حسابات قابلة للحذف حالياً.")
+
+    # 4. عرض كافة الأعضاء
+    elif "عرض" in act:
+      conn = get_db()
+      df_all = pd.read_sql_query(
+          "SELECT username AS 'اليوزر', display_name AS 'الاسم الظاهر', balance"
+          " AS 'رصيد الروبي', role AS 'الرتبة' FROM users",
+          conn,
+      )
+      conn.close()
+      st.dataframe(df_all, use_container_width=True)
