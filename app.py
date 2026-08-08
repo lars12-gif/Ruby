@@ -12,8 +12,7 @@ from supabase import create_client, Client
 # ==========================================
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-# يمكنك تغيير رابط الموقع هنا مباشر أو من متغيرات البيئة بـ Render
-RUBY_SITE_URL = os.environ.get("RUBY_SITE_URL", "https://ruby-app.com")
+RUBY_SITE_URL = os.environ.get("RUBY_SITE_URL", "https://ruby-cryv.onrender.com/")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     st.error("⚠️ خطأ: لم يتم ضبط متطلبات Supabase في متغيرات البيئة (Environment Variables).")
@@ -318,7 +317,6 @@ if not st.session_state["logged_in"]:
         unsafe_allow_html=True,
     )
 
-    # 🌐 زر زيارة موقع الروبي بصفحة الدخول الرئيسية قبل التسجيل
     st.markdown(
         f'<a href="{RUBY_SITE_URL}" target="_blank" class="ruby-site-btn">🌐 زيارة موقع الروبي الملكي 🚀</a>',
         unsafe_allow_html=True,
@@ -363,7 +361,6 @@ with col2:
         st.session_state["user_data"] = None
         st.rerun()
 
-# الشارات الملكية الخاصة
 if user["username"] == "aurther":
     role_badge = '<span class="badge-aurther">👑 المشرف العام (Aurther)</span>'
 elif user["username"] == "lamino":
@@ -387,13 +384,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# زر زيارة موقع الروبي بداخل الصفحة أيضاً
 st.markdown(
     f'<a href="{RUBY_SITE_URL}" target="_blank" class="ruby-site-btn">🌐 الانتقال لموقع الروبي 🚀</a>',
     unsafe_allow_html=True,
 )
 
-# قائمة التبويبات
 tabs_list = [
     "💸 التحويل الفوري",
     "🏆 قائمة الأثرياء",
@@ -543,4 +538,7 @@ with tabs[4]:
         n_pwd = st.text_input("كلمة السر الجديدة:", type="password")
         conf_pwd = st.text_input("تأكيد كلمة السر الجديدة:", type="password")
 
-        if st.
+        if st.form_submit_button("✏️ تحديث كلمة السر"):
+            if hash_password(c_pwd) != user["password_hash"] and c_pwd != user["password_hash"]:
+                st.error("❌ كلمة السر الحالية غير صحيحة!")
+       
