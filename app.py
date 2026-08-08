@@ -1,11 +1,23 @@
 import datetime
 import hashlib
-import math
 import random
-import sqlite3
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
+import os
+from supabase import create_client, Client
+
+# ==========================================
+# 0. إعداد الاتصال بـ Supabase
+# ==========================================
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    st.error("⚠️ خطأ: لم يتم ضبط متطلبات Supabase في متغيرات البيئة (Environment Variables).")
+    st.stop()
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ==========================================
 # 1. إعدادات الصفحة
@@ -243,132 +255,64 @@ st.markdown(
 )
 
 # ==========================================
-# 4. إدارة قاعدة البيانات (SQLite)
+# 4. دالّات التعامل مع قاعدة البيانات
 # ==========================================
-DB_FILE = "ruby_bank.db"
-
-
-def get_db():
-  return sqlite3.connect(DB_FILE, check_same_thread=False)
-
-
 def hash_password(pwd):
-  return hashlib.sha256(pwd.encode()).hexdigest()
+    return hashlib.sha256(pwd.encode()).hexdigest()
 
-
-def init_db():
-  conn = get_db()
-  c = conn.cursor()
-
-  c.execute(
-      "CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY,"
-      " password_hash TEXT, display_name TEXT, balance REAL DEFAULT 0, role"
-      " TEXT DEFAULT 'user', last_daily_claim TEXT DEFAULT '')"
-  )
-
-  c.execute(
-      "CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY"
-      " AUTOINCREMENT, sender TEXT, receiver TEXT, amount REAL, note TEXT,"
-      " timestamp TEXT)"
-  )
-
-  admins = [
-      ("aurther", "iraq2026", "Aurther 👑", 0.0, "admin"),
-      ("lamino", "iraq2026", "Lamino 🤝", 0.0, "admin"),
-  ]
-
-  for un, pw, dname, bal, role in admins:
-    c.execute("SELECT username FROM users WHERE username = ?", (un,))
-    if not c.fetchone():
-      c.execute(
-          "INSERT INTO users VALUES (?, ?, ?, ?, ?, '')",
-          (un, hash_password(pw), dname, bal, role),
-      )
-
-  conn.commit()
-  conn.close()
-
-
-init_db()
+def fetch_user(username):
+    res = supabase.table("users").select("*").eq("username", username).execute()
+    if res.data:
+        return res.data[0]
+    return None
 
 # ==========================================
 # 5. إدارة الجلسة
 # ==========================================
 if "logged_in" not in st.session_state:
-  st.session_state["logged_in"] = False
-  st.session_state["user_data"] = None
-
-
-def fetch_user(username):
-  conn = get_db()
-  c = conn.cursor()
-  c.execute(
-      "SELECT username, display_name, balance, role, last_daily_claim FROM"
-      " users WHERE username = ?",
-      (username,),
-  )
-  user = c.fetchone()
-  conn.close()
-  if user:
-    return {
-        "username": user[0],
-        "display_name": user[1],
-        "balance": user[2],
-        "role": user[3],
-        "last_daily_claim": user[4],
-    }
-  return None
-
+    st.session_state["logged_in"] = False
+    st.session_state["user_data"] = None
 
 def refresh_session():
-  if st.session_state["logged_in"]:
-    st.session_state["user_data"] = fetch_user(
-        st.session_state["user_data"]["username"]
-    )
-
+    if st.session_state["logged_in"]:
+        st.session_state["user_data"] = fetch_user(
+            st.session_state["user_data"]["username"]
+        )
 
 # ==========================================
 # 6. شاشة تسجيل الدخول
 # ==========================================
 if not st.session_state["logged_in"]:
-  st.markdown(
-      "<h1 style='text-align: center; color: #D81B60; font-weight: 900;'>🌸"
-      " BELLONA BANK 🌸</h1>",
-      unsafe_allow_html=True,
-  )
-  st.markdown(
-      "<p style='text-align: center; color: #C2185B; font-weight: 700;'>✨"
-      " الخزنة المصرفية الملكية لعملة الروبي ✨</p>",
-      unsafe_allow_html=True,
-  )
+    st.markdown(
+        "<h1 style='text-align: center; color: #D81B60; font-weight: 900;'>🌸"
+        " BELLONA BANK 🌸</h1>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<p style='text-align: center; color: #C2185B; font-weight: 700;'>✨"
+        " الخزنة المصرفية الملكية لعملة الروبي ✨</p>",
+        unsafe_allow_html=True,
+    )
 
-  with st.form("login_form"):
-    st.subheader("🔑 تسجيل الدخول لـ حسابك")
-    username_in = st.text_input("اسم المستخدم (Username):")
-    password_in = st.text_input("كلمة السر:", type="password")
+    with st.form("login_form"):
+        st.subheader("🔑 تسجيل الدخول لـ حسابك")
+        username_in = st.text_input("اسم المستخدم (Username):")
+        password_in = st.text_input("كلمة السر:", type="password")
 
-    if st.form_submit_button("🚀 دخول الخزنة الملكية"):
-      clean_un = username_in.strip().lower()
-      conn = get_db()
-      c = conn.cursor()
-      c.execute(
-          "SELECT password_hash FROM users WHERE username = ?", (clean_un,)
-      )
-      res = c.fetchone()
-      conn.close()
+        if st.form_submit_button("🚀 دخول الخزنة الملكية"):
+            clean_un = username_in.strip().lower()
+            u_data = fetch_user(clean_un)
 
-      if res and res[0] == hash_password(password_in):
-        st.session_state["logged_in"] = True
-        st.session_state["user_data"] = fetch_user(clean_un)
-        st.success("تم تسجيل الدخول بنجاح!")
-        st.rerun()
-      else:
-        st.error("❌ اسم المستخدم أو كلمة السر غير صحيحة.")
+            if u_data and u_data["password_hash"] == hash_password(password_in):
+                st.session_state["logged_in"] = True
+                st.session_state["user_data"] = u_data
+                st.success("تم تسجيل الدخول بنجاح!")
+                st.rerun()
+            else:
+                st.error("❌ اسم المستخدم أو كلمة السر غير صحيحة.")
 
-  st.warning(
-      "🔒 الحسابات يتم إنشاؤها حصراً عن طريق المشرفين (Aurther / Lamino)."
-  )
-  st.stop()
+    st.warning("🔒 الحسابات يتم إنشاؤها حصراً عن طريق المشرفين (Aurther / Lamino).")
+    st.stop()
 
 # ==========================================
 # 7. الواجهة الرئيسية
@@ -378,25 +322,25 @@ user = st.session_state["user_data"]
 
 col1, col2 = st.columns([3, 1])
 with col1:
-  st.markdown(
-      "<h2 style='color: #D81B60; font-weight: 900;'>💎 بنك الروبي الملكي</h2>",
-      unsafe_allow_html=True,
-  )
+    st.markdown(
+        "<h2 style='color: #D81B60; font-weight: 900;'>💎 بنك الروبي الملكي</h2>",
+        unsafe_allow_html=True,
+    )
 with col2:
-  if st.button("🚪 خروج"):
-    st.session_state["logged_in"] = False
-    st.session_state["user_data"] = None
-    st.rerun()
+    if st.button("🚪 خروج"):
+        st.session_state["logged_in"] = False
+        st.session_state["user_data"] = None
+        st.rerun()
 
 # الشارات الملكية الخاصة
 if user["username"] == "aurther":
-  role_badge = '<span class="badge-aurther">👑 المشرف العام (Aurther)</span>'
+    role_badge = '<span class="badge-aurther">👑 المشرف العام (Aurther)</span>'
 elif user["username"] == "lamino":
-  role_badge = '<span class="badge-lamino">🤝 المساعد العام (Lamino)</span>'
+    role_badge = '<span class="badge-lamino">🤝 المساعد العام (Lamino)</span>'
 elif user["role"] == "admin":
-  role_badge = '<span class="badge-admin">🛡️ مشرف</span>'
+    role_badge = '<span class="badge-admin">🛡️ مشرف</span>'
 else:
-  role_badge = '<span class="badge-user">💎 عضو ملكي</span>'
+    role_badge = '<span class="badge-user">💎 عضو ملكي</span>'
 
 st.markdown(
     f"""
@@ -412,7 +356,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# قائمة التبويبات الفاخرة
+# قائمة التبويبات
 tabs_list = [
     "💸 التحويل الفوري",
     "🏆 قائمة الأثرياء",
@@ -422,315 +366,181 @@ tabs_list = [
 ]
 
 if user["role"] == "admin":
-  tabs_list.append("🛡️ لوحة المشرفين")
+    tabs_list.append("🛡️ لوحة المشرفين")
 
 tabs = st.tabs(tabs_list)
 
-# --- التبويب 1: التحويل الفوري والإيصال ---
+# --- التبويب 1: التحويل الفوري الإيصال ---
 with tabs[0]:
-  st.subheader("💸 إجراء تحويل مالي سريح")
+    st.subheader("💸 إجراء تحويل مالي سريع")
 
-  conn = get_db()
-  c = conn.cursor()
-  c.execute(
-      "SELECT username, display_name FROM users WHERE username != ?",
-      (user["username"],),
-  )
-  receivers = c.fetchall()
-  conn.close()
+    res = supabase.table("users").select("username, display_name").neq("username", user["username"]).execute()
+    receivers = res.data or []
 
-  if receivers:
-    opts = {f"{r[1]} (@{r[0]})": r[0] for r in receivers}
-    sel = st.selectbox("اختر العضو المستلم:", list(opts.keys()))
-    rec_un = opts[sel]
+    if receivers:
+        opts = {f"{r['display_name']} (@{r['username']})": r['username'] for r in receivers}
+        sel = st.selectbox("اختر العضو المستلم:", list(opts.keys()))
+        rec_un = opts[sel]
 
-    amt = st.number_input("المبلغ المراد تحويله (روبي):", min_value=0.5, value=5.0)
-    note = st.text_input("سبب / ملاحظة التحويل:", value="تحويل روبي 💎")
+        amt = st.number_input("المبلغ المراد تحويله (روبي):", min_value=0.5, value=5.0)
+        note = st.text_input("سبب / ملاحظة التحويل:", value="تحويل روبي 💎")
 
-    if st.button("🚀 تحويل الروبي الآن"):
-      if user["balance"] < amt:
-        st.error("❌ رصيدك الحالي لا يكفي لإتمام التحويل!")
-      else:
-        conn = get_db()
-        c = conn.cursor()
-        c.execute(
-            "UPDATE users SET balance = balance - ? WHERE username = ?",
-            (amt, user["username"]),
-        )
-        c.execute(
-            "UPDATE users SET balance = balance + ? WHERE username = ?",
-            (amt, rec_un),
-        )
+        if st.button("🚀 تحويل الروبي الآن"):
+            if user["balance"] < amt:
+                st.error("❌ رصيدك الحالي لا يكفي لإتمام التحويل!")
+            else:
+                # خصم من المرسل
+                supabase.table("users").update({"balance": user["balance"] - amt}).eq("username", user["username"]).execute()
+                
+                # إضافة للمستلم
+                rec_data = fetch_user(rec_un)
+                supabase.table("users").update({"balance": rec_data["balance"] + amt}).eq("username", rec_un).execute()
 
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        c.execute(
-            "INSERT INTO transactions VALUES (NULL, ?, ?, ?, ?, ?)",
-            (user["username"], rec_un, amt, note, now),
-        )
+                now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                supabase.table("transactions").insert({
+                    "sender": user["username"],
+                    "receiver": rec_un,
+                    "amount": amt,
+                    "note": note,
+                    "timestamp": now
+                }).execute()
 
-        conn.commit()
-        conn.close()
+                st.balloons()
+                st.success("✅ تم إتمام التحويل بنجاح!")
 
-        st.balloons()
-        st.success("✅ تم إتمام التحويل بنجاح!")
+                st.markdown(
+                    f"""
+                    <div class="receipt-box">
+                        <h4>📜 إيصال تحويل رقمي معتمد</h4>
+                        <p><b>المرسل:</b> @{user['username']} | <b>المستلم:</b> @{rec_un}</p>
+                        <p><b>المبلغ المحول:</b> <span style="font-size: 20px; font-weight: 900; color: #D81B60;">{amt:g} روبي 💎</span></p>
+                        <p><small>التاريخ والوقت: {now}</small></p>
+                    </div>
+                """,
+                    unsafe_allow_html=True,
+                )
 
-        # إيصال رقمي
-        st.markdown(
-            f"""
-            <div class="receipt-box">
-                <h4>📜 إيصال تحويل رقمي معتمد</h4>
-                <p><b>المرسل:</b> @{user['username']} | <b>المستلم:</b> @{rec_un}</p>
-                <p><b>المبلغ المحول:</b> <span style="font-size: 20px; font-weight: 900; color: #D81B60;">{amt:g} روبي 💎</span></p>
-                <p><small>التاريخ والوقت: {now}</small></p>
-            </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-        refresh_session()
-  else:
-    st.info("💡 لا يوجد أعضاء آخرين مسجلين في البنك حالياً.")
+                refresh_session()
+    else:
+        st.info("💡 لا يوجد أعضاء آخرين مسجلين في البنك حالياً.")
 
 # --- التبويب 2: قائمة الأثرياء والإحصائيات ---
 with tabs[1]:
-  st.subheader("🏆 ترتيب أثرياء بنك الروبي")
+    st.subheader("🏆 ترتيب أثرياء بنك الروبي")
 
-  conn = get_db()
-  df_top = pd.read_sql_query(
-      "SELECT display_name AS 'الاسم', username AS 'اليوزر', balance AS"
-      " 'رصيد الروبي' FROM users ORDER BY balance DESC LIMIT 10",
-      conn,
-  )
+    res = supabase.table("users").select("display_name, username, balance").order("balance", desc=True).limit(10).execute()
+    users_list = res.data or []
 
-  c = conn.cursor()
-  c.execute("SELECT SUM(balance), COUNT(*) FROM users")
-  total_stats = c.fetchone()
-  conn.close()
+    all_users = supabase.table("users").select("balance").execute().data or []
+    total_balance = sum(u["balance"] for u in all_users)
+    total_count = len(all_users)
 
-  col_s1, col_s2 = st.columns(2)
-  with col_s1:
-    st.metric(
-        label="🌐 إجمالي الروبي المتداول",
-        value=f"{total_stats[0] or 0:,.1f} 💎",
-    )
-  with col_s2:
-    st.metric(label="👥 عدد حسابات الأعضاء", value=f"{total_stats[1] or 0}")
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        st.metric(
+            label="🌐 إجمالي الروبي المتداول",
+            value=f"{total_balance:,.1f} 💎",
+        )
+    with col_s2:
+        st.metric(label="👥 عدد حسابات الأعضاء", value=f"{total_count}")
 
-  st.markdown("---")
-  if not df_top.empty:
-    st.dataframe(df_top, use_container_width=True)
+    st.markdown("---")
+    if users_list:
+        df_top = pd.DataFrame(users_list)
+        df_top.columns = ["الاسم", "اليوزر", "رصيد الروبي"]
+        st.dataframe(df_top, use_container_width=True)
 
 # --- التبويب 3: سحب الحظ اليومي ---
 with tabs[2]:
-  st.subheader("🎲 عجلة الحظ اليومية")
-  st.write(
-      "جرب حظك كل 24 ساعة واحصل على مكافأة عشوائية تصل إلى **100 روبي**!"
-  )
+    st.subheader("🎲 عجلة الحظ اليومية")
+    st.write("جرب حظك كل 24 ساعة واحصل على مكافأة عشوائية تصل إلى **100 روبي**!")
 
-  today = datetime.datetime.now().strftime("%Y-%m-%d")
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
 
-  if user["last_daily_claim"] == today:
-    st.warning("⏳ لقد استلمت مكافأتك اليومية بالفعل! عد غداً لتجربة حظك.")
-  else:
-    if st.button("✨ اطلب مكافأة الحظ اليومية ✨"):
-      won = random.randint(1, 100)
+    if user.get("last_daily_claim") == today:
+        st.warning("⏳ لقد استلمت مكافأتك اليومية بالفعل! عد غداً لتجربة حظك.")
+    else:
+        if st.button("✨ اطلب مكافأة الحظ اليومية ✨"):
+            won = random.randint(1, 100)
+            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-      conn = get_db()
-      c = conn.cursor()
-      c.execute(
-          "UPDATE users SET balance = balance + ?, last_daily_claim = ? WHERE"
-          " username = ?",
-          (won, today, user["username"]),
-      )
+            supabase.table("users").update({
+                "balance": user["balance"] + won,
+                "last_daily_claim": today
+            }).eq("username", user["username"]).execute()
 
-      now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-      c.execute(
-          "INSERT INTO transactions VALUES (NULL, 'نظام الحظ 🎲', ?, ?, 'مكافأة"
-          " يومية 🌟', ?)",
-          (user["username"], won, now),
-      )
+            supabase.table("transactions").insert({
+                "sender": "نظام الحظ 🎲",
+                "receiver": user["username"],
+                "amount": won,
+                "note": "مكافأة يومية 🌟",
+                "timestamp": now
+            }).execute()
 
-      conn.commit()
-      conn.close()
-
-      st.balloons()
-      st.success(
-          f"🎉 مبروك! ابتسم لك الحظ وحصلت على **{won} روبي** إضافية 💎"
-      )
-      refresh_session()
-      st.rerun()
+            st.balloons()
+            st.success(f"🎉 مبروك! ابتسم لك الحظ وحصلت على **{won} روبي** إضافية 💎")
+            refresh_session()
+            st.rerun()
 
 # --- التبويب 4: سجل المعاملات ---
 with tabs[3]:
-  st.subheader("📜 سجل التحويلات والاستلام الخاص بك")
+    st.subheader("📜 سجل التحويلات والاستلام الخاص بك")
 
-  conn = get_db()
-  df_tx = pd.read_sql_query(
-      "SELECT sender AS 'المرسل', receiver AS 'المستلم', amount AS 'المبلغ"
-      " (روبي)', note AS 'الملاحظة', timestamp AS 'التاريخ والوقت' FROM"
-      " transactions WHERE sender = ? OR receiver = ? ORDER BY id DESC",
-      conn,
-      params=(user["username"], user["username"]),
-  )
-  conn.close()
+    res = supabase.table("transactions").select("*").or_(
+        f"sender.eq.{user['username']},receiver.eq.{user['username']}"
+    ).order("id", desc=True).execute()
+    
+    tx_list = res.data or []
 
-  if not df_tx.empty:
-    st.dataframe(df_tx, use_container_width=True)
-  else:
-    st.info("لا توجد عمليات تحويل أو استلام مسجلة بحسابك.")
+    if tx_list:
+        df_tx = pd.DataFrame(tx_list)[["sender", "receiver", "amount", "note", "timestamp"]]
+        df_tx.columns = ["المرسل", "المستلم", "المبلغ (روبي)", "الملاحظة", "التاريخ والوقت"]
+        st.dataframe(df_tx, use_container_width=True)
+    else:
+        st.info("لا توجد عمليات تحويل أو استلام مسجلة بحسابك.")
 
 # --- التبويب 5: إعدادات الحساب ---
 with tabs[4]:
-  st.subheader("🔒 إعدادات الحساب والأمان")
+    st.subheader("🔒 إعدادات الحساب والأمان")
 
-  with st.form("pwd_form"):
-    st.write("🔑 **تغيير كلمة السر الخاصة بك**")
-    c_pwd = st.text_input("كلمة السر الحالية:", type="password")
-    n_pwd = st.text_input("كلمة السر الجديدة:", type="password")
-    conf_pwd = st.text_input("تأكيد كلمة السر الجديدة:", type="password")
+    with st.form("pwd_form"):
+        st.write("🔑 **تغيير كلمة السر الخاصة بك**")
+        c_pwd = st.text_input("كلمة السر الحالية:", type="password")
+        n_pwd = st.text_input("كلمة السر الجديدة:", type="password")
+        conf_pwd = st.text_input("تأكيد كلمة السر الجديدة:", type="password")
 
-    if st.form_submit_button("✏️ تحديث كلمة السر"):
-      conn = get_db()
-      c = conn.cursor()
-      c.execute(
-          "SELECT password_hash FROM users WHERE username = ?",
-          (user["username"],),
-      )
-      real_hash = c.fetchone()[0]
-
-      if hash_password(c_pwd) != real_hash:
-        st.error("❌ كلمة السر الحالية غير صحيحة!")
-      elif n_pwd.strip() == "":
-        st.error("❌ لا يمكن ترك كلمة السر فارغة!")
-      elif n_pwd != conf_pwd:
-        st.error("❌ كلمات السر غير متطابقة!")
-      else:
-        c.execute(
-            "UPDATE users SET password_hash = ? WHERE username = ?",
-            (hash_password(n_pwd), user["username"]),
-        )
-        conn.commit()
-        st.success("✅ تم تغيير كلمة السر بنجاح!")
-
-      conn.close()
+        if st.form_submit_button("✏️ تحديث كلمة السر"):
+            if hash_password(c_pwd) != user["password_hash"]:
+                st.error("❌ كلمة السر الحالية غير صحيحة!")
+            elif n_pwd.strip() == "":
+                st.error("❌ لا يمكن ترك كلمة السر فارغة!")
+            elif n_pwd != conf_pwd:
+                st.error("❌ كلمات السر غير متطابقة!")
+            else:
+                supabase.table("users").update({
+                    "password_hash": hash_password(n_pwd)
+                }).eq("username", user["username"]).execute()
+                st.success("✅ تم تغيير كلمة السر بنجاح!")
 
 # --- التبويب 6: لوحة المشرفين (Aurther & Lamino) ---
 if user["role"] == "admin":
-  with tabs[5]:
-    st.subheader("🛡️ لوحة التحكم والإشراف العام")
+    with tabs[5]:
+        st.subheader("🛡️ لوحة التحكم والإشراف العام")
 
-    act = st.radio(
-        "اختر الإجراء المطلوب:",
-        [
-            "➕ إضافة عضو جديد",
-            "💰 تعديل رصيد عضو",
-            "❌ حذف حساب",
-            "👥 عرض كافة الأعضاء",
-        ],
-        horizontal=True,
-    )
-
-    # 1. إضافة عضو جديد
-    if "إضافة" in act:
-      with st.form("add_form"):
-        st.write("📝 **إنشاء حساب بنكي جديد وتخصيص يوزر وباسوورد**")
-        un = st.text_input("اسم المستخدم (Username):")
-        pw = st.text_input("كلمة السر:", type="password")
-        dn = st.text_input("الاسم الظاهر للعضو:")
-        bal = st.number_input(
-            "الرصيد الافتتاحي (روبي):", min_value=0.0, value=0.0
-        )
-        rl = st.selectbox(
-            "الرتبة:",
-            ["user", "admin"],
-            format_func=lambda x: "عضو" if x == "user" else "مشرف",
+        act = st.radio(
+            "اختر الإجراء المطلوب:",
+            [
+                "➕ إضافة عضو جديد",
+                "💰 تعديل رصيد عضو",
+                "❌ حذف حساب",
+                "👥 عرض كافة الأعضاء",
+            ],
+            horizontal=True,
         )
 
-        if st.form_submit_button("✨ إنشاء الحساب"):
-          if un.strip() and pw.strip():
-            clean_un = un.strip().lower()
-            conn = get_db()
-            c = conn.cursor()
-            try:
-              c.execute(
-                  "INSERT INTO users VALUES (?, ?, ?, ?, ?, '')",
-                  (clean_un, hash_password(pw), dn.strip(), bal, rl),
-              )
-              conn.commit()
-              st.success(f"✅ تم إنشاء حساب @{clean_un} بنجاح!")
-            except sqlite3.IntegrityError:
-              st.error("❌ اسم المستخدم هذا مسجل مسبقاً!")
-            finally:
-              conn.close()
-
-    # 2. تعديل رصيد
-    elif "تعديل" in act:
-      conn = get_db()
-      df_u = pd.read_sql_query(
-          "SELECT username, display_name FROM users", conn
-      )
-      conn.close()
-
-      if not df_u.empty:
-        usr = st.selectbox("اختر العضو:", df_u["username"])
-        tp = st.radio("نوع العملية:", ["إضافة روبي ➕", "خصم روبي ➖"])
-        val = st.number_input("المبلغ:", min_value=0.5, value=10.0)
-
-        if st.button("✏️ تطبيق التعديل"):
-          m = val if "إضافة" in tp else -val
-          conn = get_db()
-          c = conn.cursor()
-          c.execute(
-              "UPDATE users SET balance = balance + ? WHERE username = ?",
-              (m, usr),
-          )
-
-          now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-          c.execute(
-              "INSERT INTO transactions VALUES (NULL, ?, ?, ?, 'تعديل إداري',"
-              " ?)",
-              (f"المشرف (@{user['username']})", usr, m, now),
-          )
-
-          conn.commit()
-          conn.close()
-          st.success("تم تعديل الرصيد بنجاح!")
-          st.rerun()
-
-    # 3. حذف حساب
-    elif "حذف" in act:
-      conn = get_db()
-      df_d = pd.read_sql_query(
-          "SELECT username FROM users WHERE username NOT IN ('aurther',"
-          " 'lamino')",
-          conn,
-      )
-      conn.close()
-
-      if not df_d.empty:
-        dt = st.selectbox("اختر الحساب للحذف:", df_d["username"])
-        if st.button(f"🔥 حذف حساب @{dt} نهائياً"):
-          conn = get_db()
-          c = conn.cursor()
-          c.execute("DELETE FROM users WHERE username = ?", (dt,))
-          c.execute(
-              "DELETE FROM transactions WHERE sender = ? OR receiver = ?",
-              (dt, dt),
-          )
-          conn.commit()
-          conn.close()
-          st.success(f"تم حذف الحساب @{dt} بنجاح!")
-          st.rerun()
-      else:
-        st.info("لا توجد حسابات قابلة للحذف حالياً.")
-
-    # 4. عرض كافة الأعضاء
-    elif "عرض" in act:
-      conn = get_db()
-      df_all = pd.read_sql_query(
-          "SELECT username AS 'اليوزر', display_name AS 'الاسم الظاهر', balance"
-          " AS 'رصيد الروبي', role AS 'الرتبة' FROM users",
-          conn,
-      )
-      conn.close()
-      st.dataframe(df_all, use_container_width=True)
+        # 1. إضافة عضو جديد
+        if "إضافة" in act:
+            with st.form("add_form"):
+                st.write("📝 **إنشاء حساب بنكي جديد وتخصيص يوزر وباسوورد**")
+                un = st.text_input("اسم المستخدم (Username):")
+             
