@@ -12,7 +12,7 @@ from supabase import create_client, Client
 # ==========================================
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-RUBY_SITE_URL = os.environ.get("RUBY_SITE_URL", "https://ruby-cryv.onrender.com/")
+OPALS_SITE_URL = "https://opal-s-app.streamlit.app/"
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     st.error("⚠️ خطأ: لم يتم ضبط متطلبات Supabase في متغيرات البيئة (Environment Variables).")
@@ -21,13 +21,26 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ==========================================
-# 1. إعدادات الصفحة
+# 1. إعدادات الصفحة وإخفاء الشريط العلوي
 # ==========================================
 st.set_page_config(
     page_title="BELLONA | بنك الروبي الملكي",
     page_icon="💎",
     layout="centered",
 )
+
+# إخفاء الشريط العلوي والقائمة لـ Streamlit
+hide_streamlit_style = """
+    <style>
+    header {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    .block-container {
+        padding-top: 1.5rem !important;
+    }
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # ==========================================
 # 2. محرك الصوت والمؤثرات الحركية (Particles & Sound FX)
@@ -169,7 +182,7 @@ st.markdown(
         margin: 10px 0;
     }
 
-    /* زر الانتقال لموقع الروبي */
+    /* زر الانتقال لموقع نقاط التفاعل */
     .ruby-site-btn {
         display: block;
         width: 100%;
@@ -303,7 +316,7 @@ def refresh_session():
         )
 
 # ==========================================
-# 6. شاشة تسجيل الدخول + زر موقع الروبي الرئيسي
+# 6. شاشة تسجيل الدخول + زر موقع نقاط التفاعل الرئيسية
 # ==========================================
 if not st.session_state["logged_in"]:
     st.markdown(
@@ -318,7 +331,7 @@ if not st.session_state["logged_in"]:
     )
 
     st.markdown(
-        f'<a href="{RUBY_SITE_URL}" target="_blank" class="ruby-site-btn">🌐 زيارة موقع الروبي الملكي 🚀</a>',
+        f'<a href="{OPALS_SITE_URL}" target="_blank" class="ruby-site-btn">✨ الانتقال إلى موقع نقاط التفاعل (Opal\'s) 🚀</a>',
         unsafe_allow_html=True,
     )
 
@@ -385,7 +398,7 @@ st.markdown(
 )
 
 st.markdown(
-    f'<a href="{RUBY_SITE_URL}" target="_blank" class="ruby-site-btn">🌐 الانتقال لموقع الروبي 🚀</a>',
+    f'<a href="{OPALS_SITE_URL}" target="_blank" class="ruby-site-btn">✨ الانتقال إلى موقع نقاط التفاعل (Opal\'s) 🚀</a>',
     unsafe_allow_html=True,
 )
 
@@ -534,11 +547,4 @@ with tabs[4]:
 
     with st.form("pwd_form"):
         st.write("🔑 **تغيير كلمة السر الخاصة بك**")
-        c_pwd = st.text_input("كلمة السر الحالية:", type="password")
-        n_pwd = st.text_input("كلمة السر الجديدة:", type="password")
-        conf_pwd = st.text_input("تأكيد كلمة السر الجديدة:", type="password")
-
-        if st.form_submit_button("✏️ تحديث كلمة السر"):
-            if hash_password(c_pwd) != user["password_hash"] and c_pwd != user["password_hash"]:
-                st.error("❌ كلمة السر الحالية غير صحيحة!")
-       
+        c_pwd = st.text_input("كلمة السر الحالية:", type="password"
